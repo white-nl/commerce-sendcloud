@@ -1,0 +1,27 @@
+{
+    "name": "white-nl/commerce-sendcloud",
+    "description": "Use the official Sendcloud plugin to connect your Craft Commerce webshop to shipping platform Sendcloud and turn the laborious task of creating shipping labels into a quick and easy job.",
+    "type": "craft-plugin",
+    "license": "proprietary",
+    "require": {
+        "craftcms/cms": "^3.3.0",
+        "craftcms/commerce": "^3.1",
+        "jouwweb/sendcloud": "3.3.0",
+        "ext-json": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "white\\commerce\\sendcloud\\": "src/"
+        }
+    },
+    "extra": {
+        "handle": "commerce-sendcloud",
+        "name": "Sendcloud",
+        "developer": "Digital Agency WHITE",
+        "developerUrl": "https://white.nl",
+        "hasCpSettings": true,
+        "hasCpSection": true,
+        "class": "white\\commerce\\sendcloud\\SendcloudPlugin",
+        "documentationUrl": "https://white.nl/en/craft-plugins/sendcloud/docs/"
+    }
+}

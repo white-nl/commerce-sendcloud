@@ -1,0 +1,109 @@
+
+<div class="order-meta-container">
+    <div class="meta read-only">
+        <h4>{{ "Sendcloud"|t('commerce-sendcloud') }}</h4>
+        
+        {% if status and status.parcelId %}
+            <div class="data">
+                <h5 class="heading">{{ "Parcel Number"|t('commerce-sendcloud') }}</h5>
+                <p class="value">{{ status.parcelId }}</p>
+            </div>
+            <div class="data">
+                <h5 class="heading">{{ "Status"|t('commerce-sendcloud') }}</h5>
+                <p class="value">{{ status.statusId }}: {{ status.statusMessage }}</p>
+            </div>
+            <div class="data">
+                <h5 class="heading">{{ "Carrier"|t('commerce-sendcloud') }}</h5>
+                <p class="value">{{ status.carrier }}</p>
+            </div>
+            <div class="data">
+                <h5 class="heading">{{ "Tracking number"|t('commerce-sendcloud') }}</h5>
+                <p class="value">
+                    <a href="{{ status.trackingUrl }}" target="_blank" class="go">
+                        {{- status.trackingNumber -}}
+                    </a>
+                </p>
+            </div>
+        {% endif %}
+        {% if status and status.servicePoint %}
+            <div class="data">
+                <h5 class="heading">{{ "Service point"|t('commerce-sendcloud') }}</h5>
+
+                {% set info = [
+                    { label: "Service Point ID"|t('commerce-sendcloud'), type: 'code', value: status.servicePoint.id },
+                    { label: "Carrier"|t('commerce-sendcloud'), type: 'code', value: status.servicePoint.carrier },
+                    { label: "Name"|t('commerce-sendcloud'), value: status.servicePoint.name },
+                    { label: "Street"|t('commerce-sendcloud'), value: status.servicePoint.street },
+                    { label: "House Number"|t('commerce-sendcloud'), value: status.servicePoint.house_number },
+                    { label: "Postal Code"|t('commerce-sendcloud'), value: status.servicePoint.postal_code },
+                    { label: "City"|t('commerce-sendcloud'), value: status.servicePoint.city },
+                    { label: "Country"|t('commerce-sendcloud'), value: status.servicePoint.country },
+                    { label: "E-Mail"|t('commerce-sendcloud'), value: status.servicePoint.email },
+                    { label: "Phone"|t('commerce-sendcloud'), value: status.servicePoint.phone },
+                ] %}
+                <p class="value infoRow" data-info="{{ info|json_encode }}">
+                    {{ status.servicePoint.id }}
+                    <span class="tableRowInfo" data-icon="info"></span>
+                </p>
+            </div>
+        {% endif %}
+        {% if status and status.lastError %}
+            <div class="data">
+                <h5 class="heading error" data-icon="alert"> {{ "Last error"|t('commerce-sendcloud') }}</h5>
+
+                {% set info = [
+                    { label: "Error message"|t('commerce-sendcloud'), type: 'code', value: status.lastError },
+                ] %}
+                <p class="value infoRow error" data-info="{{ info|json_encode }}">
+                    {{ status.lastError|truncate(25) }}
+                    <span class="tableRowInfo" data-icon="info"></span>
+                </p>
+            </div>
+        {% endif %}
+        
+        <div class="sendcloud-actions">
+            {% if order.isCompleted %}
+                {% if currentUser.can('commerce-sendcloud-pushOrders') %}
+                    <button type="button" class="sendcloud-order-action btn-default btn" data-action="commerce-sendcloud/cp/parcel/push" data-order-id="{{ order.Id }}">
+                        {{ "Push to Sendcloud"|t('commerce-sendcloud') }}
+                    </button>
+                {% endif %}
+                {% if status and status.isPushed() %}
+                    {% if currentUser.can('commerce-sendcloud-printLabels') %}
+                        <button type="button" class="sendcloud-order-action btn-default btn" data-action="commerce-sendcloud/cp/parcel/print-label" data-order-id="{{ order.Id }}" data-target="_blank">
+                            {{ "Print Label"|t('commerce-sendcloud') }}
+                        </button>
+                    {% endif %}
+                {% endif %}
+            {% endif %}
+        </div>
+        
+    </div>
+</div>
+
+{% if false %}<script>{% endif %}
+{% js %}
+(() => {
+    $('.sendcloud-order-action').click(function() {
+        var $form = Craft.createForm().attr('target', $(this).data('target')).appendTo(Garnish.$bod);
+        $(Craft.getCsrfInput()).appendTo($form);
+        $('<input/>', {
+            type: 'hidden',
+            name: 'action',
+            value: $(this).data('action')
+        }).appendTo($form);
+        $('<input/>', {
+            type: 'hidden',
+            name: 'orderId',
+            value: $(this).data('order-id')
+        }).appendTo($form);
+        $('<input/>', {
+            type: 'submit',
+            value: 'Submit'
+        }).appendTo($form);
+        $form.submit();
+        $form.remove();
+    });
+})();
+{% endjs %}
+{% if false %}</script>{% endif %}
