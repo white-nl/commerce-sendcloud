@@ -303,4 +303,17 @@
     {% endjs %}
     {% if false %}</script>{% endif %}
 
+    {# Craft "special" styling fix for selectize. #}
+    {% if false %}<style>{% endif %}
+    {% css %}
+        body .selectize-dropdown-content > div[data-value="new"]:before {
+            content: '';
+            margin-right: 0;
+        }
+        body .selectize-dropdown-content > div[data-value="new"]:after {
+            content: '';
+        }
+    {% endcss %}
+    {% if false %}</style>{% endif %}
+
 {% endblock content %}

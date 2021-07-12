@@ -44,6 +44,7 @@ class Install extends Migration
                 'trackingUrl' => $this->text()->null(),
                 'servicePoint' => $this->json(),
                 'lastError' => $this->text()->null(),
+                'lastWebhookTimestamp' => $this->bigInteger()->null(),
                 'dateCreated' => $this->dateTime()->notNull(),
                 'dateUpdated' => $this->dateTime()->notNull(),
                 'uid' => $this->uid(),

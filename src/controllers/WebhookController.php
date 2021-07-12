@@ -4,6 +4,7 @@
 namespace white\commerce\sendcloud\controllers;
 
 
+use craft\commerce\Plugin as CommercePlugin;
 use craft\web\Controller;
 use white\commerce\sendcloud\models\OrderSyncStatus;
 use white\commerce\sendcloud\SendcloudPlugin;
@@ -80,53 +81,69 @@ class WebhookController extends Controller
             case 'parcel_status_changed':
                 {
                     $parcelData = $request->getBodyParam('parcel');
+                    $timestamp = $request->getBodyParam('timestamp');
                     if (empty($parcelData) || !empty($parcelData['is_return'])) {
                         SendcloudPlugin::log("Not a status change or is return: skipped");
                         return;
                     }
                     $parcel = (new WebhookParcelNormalizer($parcelData))->getParcel();
 
-//                    $client = SendcloudPlugin::getInstance()->sendcloudApi->getClient();
-//                    $parcel = $client->getParcel($parcel->getId());
-//                    if (!$parcel) {
-//                        SendcloudPlugin::log("Parcel #{$parcel->getId()} not found via the Sendcloud API.");
-//                        return;
-//                    }
-                    
-                    $status = SendcloudPlugin::getInstance()->orderSync->getOrderSyncStatusByParcelId($parcel->getId());
-                    if (!$status) {
-                        SendcloudPlugin::log("Parcel #{$parcel->getId()} not found. Trying to find by order #{$parcel->getOrderNumber()}");
-                        $status = SendcloudPlugin::getInstance()->orderSync->getOrderSyncStatusByOrderId($parcel->getOrderNumber());
+                    $mutex = \Craft::$app->getMutex();
+                    $lockName = 'sendcloud:orderWebhook:' . $parcel->getOrderNumber();
+                    if (!$mutex->acquire($lockName, 5)) {
+                        throw new \Exception("Unable to acquire a lock for Sendcloud webhook: '{$lockName}'.");
+                    }
+
+                    try {
+                        $status = SendcloudPlugin::getInstance()->orderSync->getOrderSyncStatusByParcelId($parcel->getId());
                         if (!$status) {
-                            SendcloudPlugin::log("Order status change skipped: parcel #{$parcel->getId()} not found.");
+                            SendcloudPlugin::log("Parcel #{$parcel->getId()} not found. Trying to find by order #{$parcel->getOrderNumber()}");
+                            $status = SendcloudPlugin::getInstance()->orderSync->getOrderSyncStatusByOrderId($parcel->getOrderNumber());
+                            if (!$status) {
+                                SendcloudPlugin::log("Order status change skipped: parcel #{$parcel->getId()} not found.");
+                                return;
+                            }
+                        }
+                        
+                        if ($timestamp < $status->lastWebhookTimestamp) {
+                            SendcloudPlugin::log("Received late webhook for parcel #{$parcel->getId()}. Ignoring.");
                             return;
                         }
-                    }
-                    
-                    $status->fillFromParcel($parcel);
-                    if (!SendcloudPlugin::getInstance()->orderSync->saveOrderSyncStatus($status)) {
-                        throw new \Exception("Could not save order sync status: " . VarDumper::dumpAsString($status->errors));
-                    }
-                    
-                    $settings = SendcloudPlugin::getInstance()->getSettings();
-                    if ($settings->canChangeOrderStatus()) {
-                        foreach ($settings->orderStatusMapping as $mapping) {
-                            if ($mapping['sendcloud'] == $parcel->getStatusId()){
-                                $order = $status->getOrder();
-                                if ($order) {
-                                    $order->orderStatusId = $mapping['craft'];
-                                    $order->message = \Craft::t('commerce-sendcloud',"[Sendcloud] Status updated via webhook ({statusId}: {statusMessage})",['statusId' => $status->statusId, 'statusMessage' => $status->statusMessage]);
-                                    if (!\Craft::$app->getElements()->saveElement($order)) {
-                                        SendcloudPlugin::error("Could not save Sendcloud order sync status.\n  " . VarDumper::dumpAsString($order->errors));
+
+                        $status->fillFromParcel($parcel);
+                        $status->lastWebhookTimestamp = $timestamp;
+                        if (!SendcloudPlugin::getInstance()->orderSync->saveOrderSyncStatus($status)) {
+                            throw new \Exception("Could not save order sync status: " . VarDumper::dumpAsString($status->errors));
+                        }
+
+                        $settings = SendcloudPlugin::getInstance()->getSettings();
+                        if ($settings->canChangeOrderStatus()) {
+                            foreach ($settings->orderStatusMapping as $mapping) {
+                                if ($mapping['sendcloud'] == $parcel->getStatusId()){
+                                    $order = $status->getOrder();
+                                    if ($order) {
+                                        $orderStatus = CommercePlugin::getInstance()->getOrderStatuses()->getOrderStatusByHandle($mapping['craft']);
+                                        if (!$orderStatus) {
+                                            throw new \Exception("Order status '{$mapping['craft']}' not found in Craft.");
+                                        }
+
+                                        $order->orderStatusId = $orderStatus->id;
+                                        $order->message = \Craft::t('commerce-sendcloud',"[Sendcloud] Status updated via webhook ({statusId}: {statusMessage})",['statusId' => $status->statusId, 'statusMessage' => $status->statusMessage]);
+                                        if (!\Craft::$app->getElements()->saveElement($order)) {
+                                            SendcloudPlugin::error("Could not save Sendcloud order sync status.\n  " . VarDumper::dumpAsString($order->errors));
+                                        }
                                     }
                                 }
                             }
                         }
-                    }
 
-                    if ($status->statusId == OrderSyncStatus::STATUS_CANCELLED) {
-                        SendcloudPlugin::getInstance()->orderSync->deleteOrderSyncStatusById($status->id);
-                        SendcloudPlugin::log("Order status for order#{$status->orderId} has been deleted because status #{$status->statusId} received from Sendcloud.");
+                        if ($status->statusId == OrderSyncStatus::STATUS_CANCELLED) {
+                            SendcloudPlugin::getInstance()->orderSync->deleteOrderSyncStatusById($status->id);
+                            SendcloudPlugin::log("Order status for order#{$status->orderId} has been deleted because status #{$status->statusId} received from Sendcloud.");
+                        }
+                        
+                    } finally {
+                        $mutex->release($lockName);
                     }
                 }
                 break;

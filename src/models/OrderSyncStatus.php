@@ -94,6 +94,9 @@ class OrderSyncStatus extends Model
 
     /** @var array|null */
     public $lastError;
+
+    /** @var integer|null */
+    public $lastWebhookTimestamp;
     
     public $dateCreated;
     public $dateUpdated;

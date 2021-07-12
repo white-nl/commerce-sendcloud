@@ -60,7 +60,7 @@ class Settings extends Model
         $orderStatuses = CommercePlugin::getInstance()->getOrderStatuses()->getAllOrderStatuses();
         $options = [];
         foreach ($orderStatuses as $orderStatus) {
-            $options[] = ['label' => $orderStatus->name, 'value' => $orderStatus->id];
+            $options[] = ['label' => $orderStatus->name, 'value' => $orderStatus->handle];
         }
         
         return $options;

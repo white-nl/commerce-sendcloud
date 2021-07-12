@@ -6,7 +6,7 @@
     "require": {
         "craftcms/cms": "^3.3.0",
         "craftcms/commerce": "^3.1",
-        "jouwweb/sendcloud": "3.3.0",
+        "jouwweb/sendcloud": "3.10.1",
         "ext-json": "*"
     },
     "autoload": {

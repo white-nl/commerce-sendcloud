@@ -112,6 +112,7 @@ class OrderSync extends Component
         $record->trackingUrl = $model->trackingUrl;
         $record->servicePoint = $model->servicePoint;
         $record->lastError = $model->lastError;
+        $record->lastWebhookTimestamp = $model->lastWebhookTimestamp;
 
         $record->save(false);
         $model->id = $record->id;
@@ -193,9 +194,14 @@ class OrderSync extends Component
             return;
         }
         
+        $orderStatus = $order->getOrderStatus();
+        if (!$orderStatus) {
+            return;
+        }
+        
         $settings = SendcloudPlugin::getInstance()->getSettings();
         
-        if (!in_array($order->orderStatusId, $settings->orderStatusesToPush) && !in_array($order->orderStatusId, $settings->orderStatusesToCreateLabel)) {
+        if (!in_array($orderStatus->handle, $settings->orderStatusesToPush) && !in_array($orderStatus->handle, $settings->orderStatusesToCreateLabel)) {
             return;
         }
         
@@ -205,7 +211,7 @@ class OrderSync extends Component
         
         $this->pushOrder($order);
         
-        if (in_array($order->orderStatusId, $settings->orderStatusesToCreateLabel)) {
+        if (in_array($orderStatus->handle, $settings->orderStatusesToCreateLabel)) {
             $this->createLabel($order);
         }
     }

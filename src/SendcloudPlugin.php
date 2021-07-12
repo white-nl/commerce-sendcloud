@@ -33,7 +33,7 @@ class SendcloudPlugin extends Plugin
 {
     public const LOG_CATEGORY = 'commerce-sendcloud';
 
-    public $schemaVersion = '1.0.2';
+    public $schemaVersion = '1.0.3';
 
     /**
      * @inheritdoc

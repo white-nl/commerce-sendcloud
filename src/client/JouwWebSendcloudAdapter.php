@@ -2,15 +2,20 @@
 
 namespace white\commerce\sendcloud\client;
 
+use craft\base\Element;
+use craft\commerce\base\PurchasableInterface;
 use craft\commerce\elements\Order;
+use craft\commerce\elements\Variant;
 use craft\helpers\ArrayHelper;
 use JouwWeb\SendCloud\Exception\SendCloudClientException;
 use JouwWeb\SendCloud\Exception\SendCloudRequestException;
 use JouwWeb\SendCloud\Exception\SendCloudStateException;
 use JouwWeb\SendCloud\Model\Address;
+use JouwWeb\SendCloud\Model\ParcelItem;
 use JouwWeb\SendCloud\Model\ShippingMethod;
 use white\commerce\sendcloud\client\SendcloudClient as Client;
 use white\commerce\sendcloud\models\Parcel;
+use white\commerce\sendcloud\SendcloudPlugin;
 
 final class JouwWebSendcloudAdapter implements SendcloudInterface
 {
@@ -55,12 +60,48 @@ final class JouwWebSendcloudAdapter implements SendcloudInterface
     public function createParcel(Order $order, ?int $servicePointId = null, ?int $weight = null): Parcel
     {
         $address = $this->createAddress($order);
+
+        if ($weight === null) {
+            //$weight = $order->getTotalWeight();
+            $weight = 0;
+            foreach ($order->getLineItems() as $item) {
+                $weight += $item->weight > 0 ? $item->weight : 1;
+            }
+        }
+        
+        $items = [];
+        foreach ($order->getLineItems() as $item) {
+            $purchasable = $item->getPurchasable();
+            
+            $parcelItem = new ParcelItem(
+                $item->getDescription() ?? $purchasable->getDescription(),
+                $item->qty,
+                $item->weight > 0 ? $item->weight : 1,
+                $item->getPrice(),
+                null,
+                null,
+                $item->getSku() ?? $purchasable->getSku()
+            );
+
+            $settings = SendcloudPlugin::getInstance()->getSettings();
+            if ($settings->hsCodeFieldHandle) {
+                $parcelItem->setHarmonizedSystemCode($this->tryGetProductField($purchasable, $settings->hsCodeFieldHandle));
+            }
+            if ($settings->originCountryFieldHandle) {
+                $parcelItem->setOriginCountryCode($this->tryGetProductField($purchasable, $settings->originCountryFieldHandle));
+            }
+
+            $items[] = $parcelItem;
+        }
+        
         $parcel = $this->client->createParcel(
             $address,
             $servicePointId,
             $order->getId(),
             $weight,
-            $order
+            $order->reference,
+            \JouwWeb\SendCloud\Model\Parcel::CUSTOMS_SHIPMENT_TYPE_COMMERCIAL_GOODS,
+            $items
         );
 
         return (new JouwWebParcelNormalizer())->getParcel($parcel);
@@ -161,5 +202,21 @@ final class JouwWebSendcloudAdapter implements SendcloudInterface
             $order->email,
             $shippingAddress->phone
         );
+    }
+
+    private function tryGetProductField(PurchasableInterface $purchasable, $fieldHandle)
+    {
+        if ($purchasable instanceof Element) {
+            if ($purchasable->getFieldLayout()->isFieldIncluded($fieldHandle)) {
+                return $purchasable->getFieldValue($fieldHandle);
+            } elseif ($purchasable instanceof Variant) {
+                $product = $purchasable->getProduct();
+                if ($product->getFieldLayout()->isFieldIncluded($fieldHandle)) {
+                    return $product->getFieldValue($fieldHandle);
+                }
+            }
+        }
+
+        return null;
     }
 }
