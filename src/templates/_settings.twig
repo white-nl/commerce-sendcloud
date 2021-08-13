@@ -54,6 +54,13 @@
                             <span class="integration-loading">{{ "Loading..."|t('commerce-sendcloud') }}</span>
                             <button type="button" class="btn btn icon add integration-register" style="display: none;">{{ "Register"|t('commerce-sendcloud') }}</button>
                             <button type="button" class="btn btn icon delete integration-remove" style="display: none;">{{ "Remove"|t('commerce-sendcloud') }}</button>
+                            <span class="integration-register-help" style="display: none;">
+                                {{ "You need a valid Sendcloud account to connect."|t('commerce-sendcloud') }}
+                                {{ "No account yet?"|t('commerce-sendcloud') }}
+                                <a href="https://panel.sendcloud.sc/accounts/signup?r=500" target="_blank">
+                                    {{ "Create a Sendcloud account"|t('commerce-sendcloud') }}
+                                </a>
+                            </span>
                         </div>
                         <div>
                             {{ "Service points:"|t('commerce-sendcloud') }}
@@ -196,6 +203,7 @@
         var servicePointOutput = $(this).find('.service-points-status');
         var loadingLabel = $(this).find('.integration-loading');
         var registerButton = $(this).find('.integration-register');
+        var registerHelp = $(this).find('.integration-register-help');
         var removeButton = $(this).find('.integration-remove');
         var shippingMethodsTable = $('#settings-shippingMethods tbody');
         var shippingMethodsLoader = $('#settings-shippingMethods tfoot');
@@ -237,6 +245,7 @@
             shippingMethodsLoader.show();
             if (data.status !== 'none') {
                 registerButton.hide();
+                registerHelp.hide();
                 removeButton.show();
 
                 $.ajax('{{ actionUrl('commerce-sendcloud/cp/settings/get-shipping-methods') }}', { data: {siteId: siteId}})
@@ -246,6 +255,7 @@
                     });
             } else {
                 registerButton.show();
+                registerHelp.show();
                 removeButton.hide();
             }
         };
