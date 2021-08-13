@@ -6,6 +6,8 @@ use craft\base\Element;
 use craft\commerce\base\PurchasableInterface;
 use craft\commerce\elements\Order;
 use craft\commerce\elements\Variant;
+use craft\commerce\models\LineItem;
+use craft\commerce\Plugin as CommercePlugin;
 use craft\helpers\ArrayHelper;
 use JouwWeb\SendCloud\Exception\SendCloudClientException;
 use JouwWeb\SendCloud\Exception\SendCloudRequestException;
@@ -62,10 +64,9 @@ final class JouwWebSendcloudAdapter implements SendcloudInterface
         $address = $this->createAddress($order);
 
         if ($weight === null) {
-            //$weight = $order->getTotalWeight();
             $weight = 0;
             foreach ($order->getLineItems() as $item) {
-                $weight += $item->weight > 0 ? $item->weight : 1;
+                $weight += $this->getLineItemWeightGrams($item);
             }
         }
         
@@ -76,7 +77,7 @@ final class JouwWebSendcloudAdapter implements SendcloudInterface
             $parcelItem = new ParcelItem(
                 $item->getDescription() ?? $purchasable->getDescription(),
                 $item->qty,
-                $item->weight > 0 ? $item->weight : 1,
+                $this->getLineItemWeightGrams($item),
                 $item->getPrice(),
                 null,
                 null,
@@ -184,11 +185,31 @@ final class JouwWebSendcloudAdapter implements SendcloudInterface
         return $this->client->getReturnPortalUrl($parcelId);
     }
 
+    protected function getLineItemWeightGrams(LineItem $lineItem)
+    {
+        $weight = $lineItem->weight;
+        if ($weight <= 0) {
+            return 1;
+        }
+        
+        $units = CommercePlugin::getInstance()->getSettings()->weightUnits;
+        switch ($units) {
+            case 'g':
+                return $weight;
+            case 'kg':
+                return $weight * 1000;
+            case 'lb':
+                return $weight * 453.592;
+            default:
+                throw new \Exception("Unsupported Craft weight units: '{$units}'.");
+        }
+    }
+
     /**
      * @param Order $order
      * @return Address
      */
-    private function createAddress(Order $order): Address
+    protected function createAddress(Order $order): Address
     {
         $shippingAddress = $order->shippingAddress;
         return new Address(
@@ -204,7 +225,7 @@ final class JouwWebSendcloudAdapter implements SendcloudInterface
         );
     }
 
-    private function tryGetProductField(PurchasableInterface $purchasable, $fieldHandle)
+    protected function tryGetProductField(PurchasableInterface $purchasable, $fieldHandle)
     {
         if ($purchasable instanceof Element) {
             if ($purchasable->getFieldLayout()->isFieldIncluded($fieldHandle)) {
