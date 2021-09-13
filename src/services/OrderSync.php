@@ -164,11 +164,13 @@ class OrderSync extends Component
                 /** @var Order $order */
                 $order = $event->sender;
                 $status = $this->getOrderSyncStatusByOrderId($order->id);
-    
+                $isSendcloudShipping = false;
+
                 if ($status && $status->servicePoint) {
                     foreach ($this->sendcloudApi->getClient()->getShippingMethods() as $method) {
                         // Find the matching sendcloud shipping
                         if ($method->getName() == $order->shippingMethod->getName()) {
+                            $isSendcloudShipping = true;
                             if (!$method->getAllowsServicePoints()) {
                                 // remove the servicePoint info
                                 $status->servicePoint = null;
@@ -176,6 +178,11 @@ class OrderSync extends Component
                             }
                             break;
                         }
+                    }
+                    if (!$isSendcloudShipping) {
+                        // remove the servicePoint info
+                        $status->servicePoint = null;
+                        $this->saveOrderSyncStatus($status);
                     }
                 }
             }

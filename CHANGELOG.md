@@ -1,5 +1,10 @@
 # Release Notes for Craft Sendcloud Plugin
 
+## 1.0.3 - 2021-09-13
+
+### Fixed
+- Remove service point information if the shipping method doesn't match any Sendcloud method
+
 ## 1.0.2 - 2021-08-13
 
 ### Fixed
