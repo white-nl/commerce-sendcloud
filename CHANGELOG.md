@@ -1,5 +1,10 @@
 # Release Notes for Craft Sendcloud Plugin
 
+## 1.0.4 - 2021-11-09
+
+### Fixed
+- Total order weight calculation fixed.
+
 ## 1.0.3 - 2021-09-13
 
 ### Fixed

@@ -66,7 +66,7 @@ final class JouwWebSendcloudAdapter implements SendcloudInterface
         if ($weight === null) {
             $weight = 0;
             foreach ($order->getLineItems() as $item) {
-                $weight += $this->getLineItemWeightGrams($item);
+                $weight += ($item->qty * $this->getLineItemWeightGrams($item));
             }
         }
         
