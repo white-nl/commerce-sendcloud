@@ -1,5 +1,11 @@
 # Release Notes for Craft Sendcloud Plugin
 
+## 1.0.5 - 2022-02-23
+
+### Changed
+- Total order value added to the parcel data.
+- Address line 3 now gets appended to the house number.
+
 ## 1.0.4 - 2021-11-09
 
 ### Fixed
