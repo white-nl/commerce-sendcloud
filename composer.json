@@ -18,7 +18,7 @@
         "handle": "commerce-sendcloud",
         "name": "Sendcloud",
         "developer": "Digital Agency WHITE",
-        "developerUrl": "https://white.nl",
+        "developerUrl": "https://white.nl/en/",
         "hasCpSettings": true,
         "hasCpSection": true,
         "class": "white\\commerce\\sendcloud\\SendcloudPlugin",
