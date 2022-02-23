@@ -102,7 +102,9 @@ final class JouwWebSendcloudAdapter implements SendcloudInterface
             $weight,
             $order->reference,
             \JouwWeb\SendCloud\Model\Parcel::CUSTOMS_SHIPMENT_TYPE_COMMERCIAL_GOODS,
-            $items
+            $items,
+            null,
+            $order
         );
 
         return (new JouwWebParcelNormalizer())->getParcel($parcel);
