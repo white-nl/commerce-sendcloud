@@ -216,7 +216,7 @@ final class JouwWebSendcloudAdapter implements SendcloudInterface
             $shippingAddress->fullName ?: $shippingAddress->firstName . ' ' . $shippingAddress->lastName,
             $shippingAddress->businessName,
             $shippingAddress->address1,
-            $shippingAddress->address2,
+            trim($shippingAddress->address2 . ' ' . $shippingAddress->address3),
             $shippingAddress->city,
             $shippingAddress->zipCode,
             $shippingAddress->country->iso,
