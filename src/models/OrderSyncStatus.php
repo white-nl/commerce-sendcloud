@@ -3,41 +3,149 @@
 
 namespace white\commerce\sendcloud\models;
 
-
 use craft\base\Model;
 use craft\commerce\elements\Order;
 use craft\commerce\Plugin as CommercePlugin;
 use craft\helpers\ArrayHelper;
+use DateTime;
+use yii\base\InvalidConfigException;
 
+/**
+ *
+ * @property-read null $servicePointId
+ * @property-read Order|null $order
+ */
 class OrderSyncStatus extends Model
 {
-    const STATUS_ANNOUNCED = 1;
-    const STATUS_EN_ROUTE_TO_SORTING_CENTER = 3;
-    const STATUS_DELIVERY_DELAYED = 4;
-    const STATUS_SORTED = 5;
-    const STATUS_NOT_SORTED = 6;
-    const STATUS_BEING_SORTED = 7;
-    const STATUS_DELIVERY_ATTEMPT_FAILED = 8;
-    const STATUS_DELIVERED = 11;
-    const STATUS_AWAITING_CUSTOMER_PICKUP = 12;
-    const STATUS_ANNOUNCED_NOT_COLLECTED = 13;
-    const STATUS_ERROR_COLLECTING = 15;
-    const STATUS_SHIPMENT_PICKED_UP_BY_DRIVER = 22;
-    const STATUS_UNABLE_TO_DELIVER = 80;
-    const STATUS_PARCEL_EN_ROUTE = 91;
-    const STATUS_DRIVER_EN_ROUTE = 92;
-    const STATUS_SHIPMENT_COLLECTED_BY_CUSTOMER = 93;
-    const STATUS_NO_LABEL = 999;
-    const STATUS_READY_TO_SEND = 1000;
-    const STATUS_BEING_ANNOUNCED = 1001;
-    const STATUS_ANNOUNCEMENT_FAILED = 1002;
-    const STATUS_UNKNOWN = 1337;
-    const STATUS_CANCELLED_UPSTREAM = 1998;
-    const STATUS_CANCELLATION_REQUESTED = 1999;
-    const STATUS_CANCELLED = 2000;
-    const STATUS_SUBMITTING_CANCELLATION_REQUEST = 2001;
-    
-    const STATUSES = [
+    /**
+     * @var int
+     */
+    public const STATUS_ANNOUNCED = 1;
+
+    /**
+     * @var int
+     */
+    public const STATUS_EN_ROUTE_TO_SORTING_CENTER = 3;
+
+    /**
+     * @var int
+     */
+    public const STATUS_DELIVERY_DELAYED = 4;
+
+    /**
+     * @var int
+     */
+    public const STATUS_SORTED = 5;
+
+    /**
+     * @var int
+     */
+    public const STATUS_NOT_SORTED = 6;
+
+    /**
+     * @var int
+     */
+    public const STATUS_BEING_SORTED = 7;
+
+    /**
+     * @var int
+     */
+    public const STATUS_DELIVERY_ATTEMPT_FAILED = 8;
+
+    /**
+     * @var int
+     */
+    public const STATUS_DELIVERED = 11;
+
+    /**
+     * @var int
+     */
+    public const STATUS_AWAITING_CUSTOMER_PICKUP = 12;
+
+    /**
+     * @var int
+     */
+    public const STATUS_ANNOUNCED_NOT_COLLECTED = 13;
+
+    /**
+     * @var int
+     */
+    public const STATUS_ERROR_COLLECTING = 15;
+
+    /**
+     * @var int
+     */
+    public const STATUS_SHIPMENT_PICKED_UP_BY_DRIVER = 22;
+
+    /**
+     * @var int
+     */
+    public const STATUS_UNABLE_TO_DELIVER = 80;
+
+    /**
+     * @var int
+     */
+    public const STATUS_PARCEL_EN_ROUTE = 91;
+
+    /**
+     * @var int
+     */
+    public const STATUS_DRIVER_EN_ROUTE = 92;
+
+    /**
+     * @var int
+     */
+    public const STATUS_SHIPMENT_COLLECTED_BY_CUSTOMER = 93;
+
+    /**
+     * @var int
+     */
+    public const STATUS_NO_LABEL = 999;
+
+    /**
+     * @var int
+     */
+    public const STATUS_READY_TO_SEND = 1000;
+
+    /**
+     * @var int
+     */
+    public const STATUS_BEING_ANNOUNCED = 1001;
+
+    /**
+     * @var int
+     */
+    public const STATUS_ANNOUNCEMENT_FAILED = 1002;
+
+    /**
+     * @var int
+     */
+    public const STATUS_UNKNOWN = 1337;
+
+    /**
+     * @var int
+     */
+    public const STATUS_CANCELLED_UPSTREAM = 1998;
+
+    /**
+     * @var int
+     */
+    public const STATUS_CANCELLATION_REQUESTED = 1999;
+
+    /**
+     * @var int
+     */
+    public const STATUS_CANCELLED = 2000;
+
+    /**
+     * @var int
+     */
+    public const STATUS_SUBMITTING_CANCELLATION_REQUEST = 2001;
+
+    /**
+     * @var array<int, string>
+     */
+    public const STATUSES = [
         self::STATUS_ANNOUNCED => "Announced",
         self::STATUS_EN_ROUTE_TO_SORTING_CENTER => "En route to sorting center",
         self::STATUS_DELIVERY_DELAYED => "Delivery delayed",
@@ -64,53 +172,55 @@ class OrderSyncStatus extends Model
         self::STATUS_CANCELLED => "Cancelled",
         self::STATUS_SUBMITTING_CANCELLATION_REQUEST => "Submitting cancellation request",
     ];
-    
-    /** @var integer */
-    public $id;
 
     /** @var integer */
-    public $orderId;
+    public int $id;
+
+    /** @var integer */
+    public int $orderId;
 
     /** @var integer|null */
-    public $parcelId;
+    public ?int $parcelId = null;
 
     /** @var integer|null */
-    public $statusId;
+    public ?int $statusId = null;
 
     /** @var string|null */
-    public $statusMessage;
+    public ?string $statusMessage = null;
 
     /** @var string|null */
-    public $carrier;
+    public ?string $carrier = null;
 
     /** @var string|null */
-    public $trackingNumber;
+    public ?string $trackingNumber = null;
 
     /** @var string|null */
-    public $trackingUrl;
+    public ?string $trackingUrl = null;
 
     /** @var array|null */
-    public $servicePoint;
+    public ?array $servicePoint = [];
 
-    /** @var array|null */
-    public $lastError;
+    /** @var array|string|null */
+    public array|string|null $lastError = null;
 
     /** @var integer|null */
-    public $lastWebhookTimestamp;
-    
-    public $dateCreated;
-    public $dateUpdated;
-    public $uid;
+    public ?int $lastWebhookTimestamp = null;
+
+    public DateTime $dateCreated;
+
+    public DateTime $dateUpdated;
+
+    public string $uid;
 
     /**
-     * @var Order Order
+     * @var ?Order Order
      */
-    private $_order;
+    private ?Order $_order = null;
 
     /**
      * @inheritdoc
      */
-    public function rules()
+    public function rules(): array
     {
         return [
             [['orderId'], 'required'],
@@ -119,16 +229,21 @@ class OrderSyncStatus extends Model
 
     /**
      * @return Order|null
+     * @throws InvalidConfigException
      */
-    public function getOrder()
+    public function getOrder(): ?Order
     {
-        if ($this->_order === null && $this->orderId !== null) {
+        if (!$this->_order instanceof Order) {
             $this->_order = CommercePlugin::getInstance()->getOrders()->getOrderById($this->orderId);
         }
 
         return $this->_order;
     }
 
+    /**
+     * @return mixed|null
+     * @throws \Exception
+     */
     public function getServicePointId()
     {
         if (!$this->servicePoint) {
@@ -138,28 +253,38 @@ class OrderSyncStatus extends Model
         return ArrayHelper::getValue($this->servicePoint, 'id');
     }
 
-    public function fillFromParcel(Parcel $parcel)
+    /**
+     * @param Parcel $parcel
+     * @return void
+     */
+    public function fillFromParcel(Parcel $parcel): void
     {
         $this->parcelId = $parcel->getId();
         $this->statusId = $parcel->getStatusId();
         $this->statusMessage = $parcel->getStatusMessage();
-        
+
         if (!empty($parcel->getCarrier())) {
             $this->carrier = $parcel->getCarrier();
         }
-        
+
         if ($parcel->getTrackingNumber()) {
             $this->trackingNumber = $parcel->getTrackingNumber();
             $this->trackingUrl = $parcel->getTrackingUrl();
         }
     }
 
-    public function isPushed()
+    /**
+     * @return int|null
+     */
+    public function isPushed(): ?int
     {
-        return $this->parcelId;
+        return $this->parcelId ?? null;
     }
 
-    public function isLabelCreated()
+    /**
+     * @return bool
+     */
+    public function isLabelCreated(): bool
     {
         return $this->parcelId && $this->statusId != self::STATUS_NO_LABEL;
     }

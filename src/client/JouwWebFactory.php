@@ -8,9 +8,9 @@ use white\commerce\sendcloud\models\Integration;
 
 final class JouwWebFactory
 {
-    private $publicKey;
+    private string $publicKey;
     
-    private $secretKey;
+    private string $secretKey;
 
     /**
      * JouwWebFactory constructor.

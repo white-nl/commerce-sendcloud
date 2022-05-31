@@ -2,7 +2,6 @@
 
 namespace white\commerce\sendcloud\migrations;
 
-use Craft;
 use craft\db\Migration;
 
 /**

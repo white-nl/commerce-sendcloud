@@ -3,27 +3,42 @@
 
 namespace white\commerce\sendcloud\controllers;
 
-
 use craft\commerce\Plugin as CommercePlugin;
+use craft\errors\ElementNotFoundException;
 use craft\web\Controller;
+use white\commerce\sendcloud\client\WebhookParcelNormalizer;
 use white\commerce\sendcloud\models\OrderSyncStatus;
 use white\commerce\sendcloud\SendcloudPlugin;
-use white\commerce\sendcloud\client\WebhookParcelNormalizer;
+use yii\base\Exception;
+use yii\base\InvalidConfigException;
+use yii\db\StaleObjectException;
 use yii\helpers\VarDumper;
 use yii\web\MethodNotAllowedHttpException;
 use yii\web\NotFoundHttpException;
 
 class WebhookController extends Controller
 {
-    protected $allowAnonymous = self::ALLOW_ANONYMOUS_LIVE;
+    protected array|int|bool $allowAnonymous = self::ALLOW_ANONYMOUS_LIVE;
     public $enableCsrfValidation = false;
     
-    public function init()
+    public function init(): void
     {
         parent::init();
     }
 
-    public function actionHandle($id, $token)
+    /**
+     * @param int $id
+     * @param string $token
+     * @return void
+     * @throws MethodNotAllowedHttpException
+     * @throws NotFoundHttpException
+     * @throws \Throwable
+     * @throws ElementNotFoundException
+     * @throws Exception
+     * @throws InvalidConfigException
+     * @throws StaleObjectException
+     */
+    public function actionHandle(int $id, string $token): void
     {
         $request = \Craft::$app->getRequest();
         if (!$request->getIsPost()) {
@@ -50,7 +65,7 @@ class WebhookController extends Controller
                         }
                         
                         if (!$integrationService->saveIntegration($integration)) {
-                            throw new \Exception("Couldn't save the integration.");
+                            throw new \RuntimeException("Couldn't save the integration.");
                         }
                     }
                 }
@@ -67,14 +82,14 @@ class WebhookController extends Controller
                     $integration->servicePointEnabled = (bool)$request->getBodyParam('integration.service_point_enabled', false);
                     $integration->servicePointCarriers = $request->getBodyParam('integration.service_point_carriers', []);
                     if (!$integrationService->saveIntegration($integration)) {
-                        throw new \Exception("Couldn't save the integration.");
+                        throw new \RuntimeException("Couldn't save the integration.");
                     }
                 }
                 break;
             case 'integration_deleted':
                 {
                     if (!$integrationService->deleteIntegrationById($integration->id)) {
-                        throw new \Exception("Couldn't delete the integration.");
+                        throw new \RuntimeException("Couldn't delete the integration.");
                     }
                 }
                 break;
@@ -91,14 +106,14 @@ class WebhookController extends Controller
                     $mutex = \Craft::$app->getMutex();
                     $lockName = 'sendcloud:orderWebhook:' . $parcel->getOrderNumber();
                     if (!$mutex->acquire($lockName, 5)) {
-                        throw new \Exception("Unable to acquire a lock for Sendcloud webhook: '{$lockName}'.");
+                        throw new \RuntimeException("Unable to acquire a lock for Sendcloud webhook: '{$lockName}'.");
                     }
 
                     try {
                         $status = SendcloudPlugin::getInstance()->orderSync->getOrderSyncStatusByParcelId($parcel->getId());
                         if (!$status) {
                             SendcloudPlugin::log("Parcel #{$parcel->getId()} not found. Trying to find by order #{$parcel->getOrderNumber()}");
-                            $status = SendcloudPlugin::getInstance()->orderSync->getOrderSyncStatusByOrderId($parcel->getOrderNumber());
+                            $status = SendcloudPlugin::getInstance()->orderSync->getOrderSyncStatusByOrderId((int)$parcel->getOrderNumber());
                             if (!$status) {
                                 SendcloudPlugin::log("Order status change skipped: parcel #{$parcel->getId()} not found.");
                                 return;
@@ -113,18 +128,18 @@ class WebhookController extends Controller
                         $status->fillFromParcel($parcel);
                         $status->lastWebhookTimestamp = $timestamp;
                         if (!SendcloudPlugin::getInstance()->orderSync->saveOrderSyncStatus($status)) {
-                            throw new \Exception("Could not save order sync status: " . VarDumper::dumpAsString($status->errors));
+                            throw new \RuntimeException("Could not save order sync status: " . VarDumper::dumpAsString($status->errors));
                         }
 
                         $settings = SendcloudPlugin::getInstance()->getSettings();
                         if ($settings->canChangeOrderStatus()) {
                             foreach ($settings->orderStatusMapping as $mapping) {
-                                if ($mapping['sendcloud'] == $parcel->getStatusId()){
+                                if ($mapping['sendcloud'] == $parcel->getStatusId()) {
                                     $order = $status->getOrder();
                                     if ($order) {
                                         $orderStatus = CommercePlugin::getInstance()->getOrderStatuses()->getOrderStatusByHandle($mapping['craft']);
                                         if (!$orderStatus) {
-                                            throw new \Exception("Order status '{$mapping['craft']}' not found in Craft.");
+                                            throw new \RuntimeException("Order status '{$mapping['craft']}' not found in Craft.");
                                         }
 
                                         $order->orderStatusId = $orderStatus->id;
@@ -141,14 +156,12 @@ class WebhookController extends Controller
                             SendcloudPlugin::getInstance()->orderSync->deleteOrderSyncStatusById($status->id);
                             SendcloudPlugin::log("Order status for order#{$status->orderId} has been deleted because status #{$status->statusId} received from Sendcloud.");
                         }
-                        
                     } finally {
                         $mutex->release($lockName);
                     }
                 }
                 break;
             default:
-                return;
         }
     }
 }

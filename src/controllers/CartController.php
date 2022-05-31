@@ -3,7 +3,6 @@
 
 namespace white\commerce\sendcloud\controllers;
 
-
 use Craft;
 use craft\commerce\Plugin as CommercePlugin;
 use craft\web\Controller;
@@ -14,10 +13,14 @@ use yii\web\Response;
 
 class CartController extends Controller
 {
-    protected $allowAnonymous = self::ALLOW_ANONYMOUS_LIVE;
+    protected array|bool|int $allowAnonymous = self::ALLOW_ANONYMOUS_LIVE;
     public $enableCsrfValidation = true;
-    
-    public function actionSetServicePoint()
+
+    /**
+     * @return bool[]|\craft\web\Response|false[]
+     * @throws BadRequestHttpException
+     */
+    public function actionSetServicePoint(): \craft\web\Response|array
     {
         // Add CORS headers
         $headers = $this->response->getHeaders();
@@ -39,18 +42,18 @@ class CartController extends Controller
         try {
             $cart = CommercePlugin::getInstance()->getOrders()->getOrderByNumber($orderNumber);
             if ($cart->isCompleted) {
-                throw new BadRequestHttpException('Cart is already completed: '. $orderNumber);
+                throw new BadRequestHttpException('Cart is already completed: ' . $orderNumber);
             }
             
             $status = SendcloudPlugin::getInstance()->orderSync->getOrCreateOrderSyncStatus($cart);
             $status->servicePoint = $servicePointParams;
             if (!SendcloudPlugin::getInstance()->orderSync->saveOrderSyncStatus($status)) {
-                throw new \Exception('SendCloud order not save:'. VarDumper::dumpAsString($status->errors));
+                throw new \RuntimeException('SendCloud order not save:' . VarDumper::dumpAsString($status->errors));
             }
             return [
                 'success' => true,
             ];
-        } catch (\Exception $e) {
+        } catch (\Exception) {
             return [
                 'success' => false,
             ];

@@ -3,34 +3,31 @@
 
 namespace white\commerce\sendcloud\variables;
 
-
 use craft\base\Component;
 use craft\commerce\elements\Order;
+use craft\errors\SiteNotFoundException;
 use craft\helpers\ArrayHelper;
+use JouwWeb\SendCloud\Model\ShippingMethod;
 use white\commerce\sendcloud\models\OrderSyncStatus;
 use white\commerce\sendcloud\SendcloudPlugin;
 use white\commerce\sendcloud\services\Integrations;
 use white\commerce\sendcloud\services\OrderSync;
 use white\commerce\sendcloud\services\SendcloudApi;
 
+/**
+ *
+ * @property-read null|string $integrationPublicKey
+ * @property-read array|ShippingMethod[] $shippingMethods
+ */
 class SendcloudVariable extends Component
 {
-    /**
-     * @var OrderSync
-     */
-    private $orderSync;
+    private ?OrderSync $orderSync = null;
     
-    /**
-     * @var SendcloudApi
-     */
-    private $sendcloudApi;
+    private ?SendcloudApi $sendcloudApi = null;
     
-    /**
-     * @var Integrations
-     */
-    private $integrations;
+    private ?Integrations $integrations = null;
 
-    public function init()
+    public function init(): void
     {
         parent::init();
         
@@ -41,40 +38,34 @@ class SendcloudVariable extends Component
 
     /**
      * Gets the public key for Sendcloud API.
-     * 
      * @return string|null
-     * @throws \craft\errors\SiteNotFoundException
+     * @throws SiteNotFoundException
      */
-    public function getIntegrationPublicKey()
+    public function getIntegrationPublicKey(): ?string
     {
         $integration = $this->integrations->getIntegrationBySiteId(\Craft::$app->getSites()->getPrimarySite()->id);
-        if (!$integration) {
-            return null;
-        }
-        
-        return $integration->publicKey;
+        return $integration?->publicKey;
     }
 
     /**
      * Gets all available Sendcloud shipping methods.
-     * 
-     * @return array|\JouwWeb\SendCloud\Model\ShippingMethod[]
-     * @throws \JouwWeb\SendCloud\Exception\SendCloudClientException
+     *
+     * @return array|ShippingMethod[]
+     * @throws SiteNotFoundException
      */
-    public function getShippingMethods()
+    public function getShippingMethods(): array
     {
         return $this->sendcloudApi->getClient()->getShippingMethods();
     }
 
     /**
      * Gets order synchronization status for given order or a cart.
-     * 
      * @param Order $order
      * @return OrderSyncStatus|null
      */
-    public function getOrderSyncStatus(Order $order)
+    public function getOrderSyncStatus(Order $order): ?OrderSyncStatus
     {
-        return $this->orderSync->getOrderSyncStatusByOrderId($order->id);
+        return $this->orderSync->getOrderSyncStatusByOrderId($order->getId());
     }
 
     /**
@@ -83,11 +74,12 @@ class SendcloudVariable extends Component
      * @param Order $order
      * @param string|null $carrier
      * @return array|null
+     * @throws \Exception
      */
-    public function getServicePoint(Order $order, $carrier = null): ?array
+    public function getServicePoint(Order $order, string $carrier = null): ?array
     {
         $status = $this->getOrderSyncStatus($order);
-        if (!$status) {
+        if (!$status instanceof \white\commerce\sendcloud\models\OrderSyncStatus) {
             return null;
         }
         
@@ -104,14 +96,9 @@ class SendcloudVariable extends Component
      * @param Order $order
      * @return string|null
      */
-    public function getTrackingNumber(Order $order)
+    public function getTrackingNumber(Order $order): ?string
     {
-        $status = $this->getOrderSyncStatus($order);
-        if (!$status) {
-            return null;
-        }
-
-        return $status->trackingNumber;
+        return $this->getOrderSyncStatus($order)?->trackingNumber;
     }
 
     /**
@@ -120,24 +107,19 @@ class SendcloudVariable extends Component
      * @param Order $order
      * @return string|null
      */
-    public function getTrackingUrl(Order $order)
+    public function getTrackingUrl(Order $order): ?string
     {
-        $status = $this->getOrderSyncStatus($order);
-        if (!$status) {
-            return null;
-        }
-
-        return $status->trackingUrl;
+        return $this->getOrderSyncStatus($order)?->trackingUrl;
     }
 
     /**
      * Gets the return portal URL for the given order (if available).
-     * 
+     *
      * @param Order $order
      * @return string|null
-     * @throws \Exception
+     * @throws SiteNotFoundException
      */
-    public function getReturnPortalUrl(Order $order)
+    public function getReturnPortalUrl(Order $order): ?string
     {
         $status = $this->getOrderSyncStatus($order);
         if (!$status || !$status->isPushed()) {

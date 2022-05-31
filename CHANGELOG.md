@@ -1,5 +1,11 @@
 # Release Notes for Craft Sendcloud Plugin
 
+## 2.0.0 - 2022-05-31
+
+### Added
+- Added Craft CMS 4 and Craft Commerce 4 compatibility
+- Added caching for retrieving the shipping methods from Sendcloud
+
 ## 1.0.5 - 2022-02-23
 
 ### Changed

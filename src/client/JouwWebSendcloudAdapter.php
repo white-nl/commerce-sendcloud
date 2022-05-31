@@ -2,42 +2,35 @@
 
 namespace white\commerce\sendcloud\client;
 
+use Craft;
 use craft\base\Element;
 use craft\commerce\base\PurchasableInterface;
 use craft\commerce\elements\Order;
 use craft\commerce\elements\Variant;
 use craft\commerce\models\LineItem;
 use craft\commerce\Plugin as CommercePlugin;
+use craft\errors\InvalidFieldException;
 use craft\helpers\ArrayHelper;
 use JouwWeb\SendCloud\Exception\SendCloudClientException;
 use JouwWeb\SendCloud\Exception\SendCloudRequestException;
-use JouwWeb\SendCloud\Exception\SendCloudStateException;
 use JouwWeb\SendCloud\Model\Address;
 use JouwWeb\SendCloud\Model\ParcelItem;
 use JouwWeb\SendCloud\Model\ShippingMethod;
 use white\commerce\sendcloud\client\SendcloudClient as Client;
 use white\commerce\sendcloud\models\Parcel;
 use white\commerce\sendcloud\SendcloudPlugin;
+use yii\base\InvalidConfigException;
 
 final class JouwWebSendcloudAdapter implements SendcloudInterface
 {
-    /**
-     * @var Client
-     */
-    private $client;
-
-    /**
-     * @var array
-     */
-    private $sendcloudShippingMethods;
+    private ?array $sendcloudShippingMethods = null;
 
     /**
      * JouwWebSendCloudAdapter constructor.
      * @param Client $client
      */
-    public function __construct(Client $client)
+    public function __construct(private Client $client)
     {
-        $this->client = $client;
     }
 
     /**
@@ -58,6 +51,7 @@ final class JouwWebSendcloudAdapter implements SendcloudInterface
      * @param int|null $weight
      * @return Parcel
      * @throws SendCloudRequestException
+     * @throws \Exception
      */
     public function createParcel(Order $order, ?int $servicePointId = null, ?int $weight = null): Parcel
     {
@@ -75,13 +69,13 @@ final class JouwWebSendcloudAdapter implements SendcloudInterface
             $purchasable = $item->getPurchasable();
             
             $parcelItem = new ParcelItem(
-                $item->getDescription() ?? $purchasable->getDescription(),
+                !empty($item->getDescription()) ? $item->getDescription() : $purchasable->getDescription(),
                 $item->qty,
                 $this->getLineItemWeightGrams($item),
                 $item->getPrice(),
                 null,
                 null,
-                $item->getSku() ?? $purchasable->getSku()
+                !empty($item->getSku()) ? $item->getSku() : $purchasable->getSku()
             );
 
             $settings = SendcloudPlugin::getInstance()->getSettings();
@@ -98,7 +92,7 @@ final class JouwWebSendcloudAdapter implements SendcloudInterface
         $parcel = $this->client->createParcel(
             $address,
             $servicePointId,
-            $order->getId(),
+            (string)$order->getId(),
             $weight,
             $order->reference,
             \JouwWeb\SendCloud\Model\Parcel::CUSTOMS_SHIPMENT_TYPE_COMMERCIAL_GOODS,
@@ -111,7 +105,7 @@ final class JouwWebSendcloudAdapter implements SendcloudInterface
     }
 
     /**
-     * @param $parcelId
+     * @param int $parcelId
      * @param Order $order
      * @return Parcel
      * @throws SendCloudRequestException
@@ -125,8 +119,9 @@ final class JouwWebSendcloudAdapter implements SendcloudInterface
     }
 
     /**
-     * @param Order $order
+     *
      * @param int $parcelId
+     * @param Order $order
      * @return Parcel
      * @throws SendCloudClientException
      * @throws SendCloudRequestException
@@ -135,7 +130,7 @@ final class JouwWebSendcloudAdapter implements SendcloudInterface
     {
         $shippingMethods = $this->getShippingMethods();
         if (!array_key_exists($order->shippingMethod->getName(), $shippingMethods)) {
-            throw new \Exception("Could not find Sendcloud shipping method '{$order->shippingMethod->getName()}'.");
+            throw new \RuntimeException("Could not find Sendcloud shipping method '{$order->shippingMethod->getName()}'.");
         }
         
         $shippingMethodId = $shippingMethods[$order->shippingMethod->getName()]->getId();
@@ -146,19 +141,20 @@ final class JouwWebSendcloudAdapter implements SendcloudInterface
         return (new JouwWebParcelNormalizer())->getParcel($parcel);
     }
 
+    /**
+     * @return array
+     */
     public function getShippingMethods(): array
     {
         if (!$this->sendcloudShippingMethods) {
-            $sendcloudShippingMethods = $this->client->getShippingMethods();
-            $this->sendcloudShippingMethods = ArrayHelper::map(
-                $sendcloudShippingMethods,
-                static function (ShippingMethod $method) {
-                    return $method->getName();
-                },
-                static function (ShippingMethod $method) {
-                    return $method;
-                }
-            );
+            $this->sendcloudShippingMethods = Craft::$app->getCache()->getOrSet('sendcloud-shipping-methods', function() {
+                $sendcloudShippingMethods = $this->client->getShippingMethods();
+                return ArrayHelper::map(
+                    $sendcloudShippingMethods,
+                    static fn(ShippingMethod $method) => $method->getName(),
+                    static fn(ShippingMethod $method) => $method,
+                );
+            }, 3600);
         }
 
         return $this->sendcloudShippingMethods;
@@ -169,25 +165,38 @@ final class JouwWebSendcloudAdapter implements SendcloudInterface
      * @param int $format
      * @return string
      * @throws SendCloudClientException
-     * @throws SendCloudRequestException
-     * @throws SendCloudStateException
      */
     public function getLabelPdf(int $parcelId, int $format): string
     {
         return $this->client->getLabelPdf($parcelId, $format);
     }
 
+    /**
+     * @param array $parcelIds
+     * @param int $format
+     * @return string
+     * @throws SendCloudClientException
+     */
     public function getLabelsPdf(array $parcelIds, int $format): string
     {
         return $this->client->getBulkLabelPdf($parcelIds, $format);
     }
 
+    /**
+     * @param int $parcelId
+     * @return string|null
+     */
     public function getReturnPortalUrl(int $parcelId): ?string
     {
         return $this->client->getReturnPortalUrl($parcelId);
     }
 
-    protected function getLineItemWeightGrams(LineItem $lineItem)
+    /**
+     * @param LineItem $lineItem
+     * @return float|int
+     * @throws \Exception
+     */
+    protected function getLineItemWeightGrams(LineItem $lineItem): float|int
     {
         $weight = $lineItem->weight;
         if ($weight <= 0) {
@@ -195,44 +204,52 @@ final class JouwWebSendcloudAdapter implements SendcloudInterface
         }
         
         $units = CommercePlugin::getInstance()->getSettings()->weightUnits;
-        switch ($units) {
-            case 'g':
-                return $weight;
-            case 'kg':
-                return $weight * 1000;
-            case 'lb':
-                return $weight * 453.592;
-            default:
-                throw new \Exception("Unsupported Craft weight units: '{$units}'.");
-        }
+        return match ($units) {
+            'g' => $weight,
+            'kg' => $weight * 1000,
+            'lb' => $weight * 453.592,
+            default => throw new \Exception("Unsupported Craft weight units: '{$units}'."),
+        };
     }
 
     /**
      * @param Order $order
      * @return Address
+     * @throws InvalidConfigException|InvalidFieldException
      */
     protected function createAddress(Order $order): Address
     {
-        $shippingAddress = $order->shippingAddress;
+        /** @var \craft\elements\Address $shippingAddress */
+        $shippingAddress = $order->getShippingAddress();
+        $settings = SendcloudPlugin::getInstance()->getSettings();
+        if ($settings->phoneNumberFieldHandle) {
+            $phoneNumber = $shippingAddress->getFieldValue($settings->phoneNumberFieldHandle);
+        }
         return new Address(
-            $shippingAddress->fullName ?: $shippingAddress->firstName . ' ' . $shippingAddress->lastName,
-            $shippingAddress->businessName,
-            $shippingAddress->address1,
-            trim($shippingAddress->address2 . ' ' . $shippingAddress->address3),
-            $shippingAddress->city,
-            $shippingAddress->zipCode,
-            $shippingAddress->country->iso,
-            $order->email,
-            $shippingAddress->phone
+            $shippingAddress->fullName ?: $shippingAddress->getGivenName() . ' ' . $shippingAddress->getFamilyName(),
+            $shippingAddress->getOrganization(),
+            $shippingAddress->getAddressLine1(),
+            trim($shippingAddress->getAddressLine2()),
+            $shippingAddress->getLocality(),
+            $shippingAddress->getPostalCode(),
+            $shippingAddress->getCountryCode(),
+            $order->getEmail(),
+            $phoneNumber ?? null
         );
     }
 
+    /**
+     * @throws InvalidFieldException
+     * @throws InvalidConfigException
+     */
     protected function tryGetProductField(PurchasableInterface $purchasable, $fieldHandle)
     {
         if ($purchasable instanceof Element) {
             if ($purchasable->getFieldLayout()->isFieldIncluded($fieldHandle)) {
                 return $purchasable->getFieldValue($fieldHandle);
-            } elseif ($purchasable instanceof Variant) {
+            }
+
+            if ($purchasable instanceof Variant) {
                 $product = $purchasable->getProduct();
                 if ($product->getFieldLayout()->isFieldIncluded($fieldHandle)) {
                     return $product->getFieldValue($fieldHandle);

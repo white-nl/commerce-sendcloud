@@ -3,6 +3,7 @@
 namespace white\commerce\sendcloud;
 
 use Craft;
+use craft\base\Element;
 use craft\base\Plugin;
 use craft\commerce\elements\Order;
 use craft\events\RegisterElementActionsEvent;
@@ -26,6 +27,9 @@ use yii\log\Logger;
 /**
  * @property Integrations $integrations
  * @property OrderSync $orderSync
+ * @property-read mixed $settingsResponse
+ * @property-read null|array $cpNavItem
+ * @property-read Settings $settings
  * @property SendcloudApi $sendcloudApi
  * @method Settings getSettings()
  */
@@ -33,7 +37,7 @@ class SendcloudPlugin extends Plugin
 {
     public const LOG_CATEGORY = 'commerce-sendcloud';
 
-    public $schemaVersion = '1.0.3';
+    public string $schemaVersion = '1.0.3';
 
     /**
      * @inheritdoc
@@ -54,7 +58,7 @@ class SendcloudPlugin extends Plugin
     /**
      * @inheritdoc
      */
-    protected function createSettingsModel(): Settings
+    protected function createSettingsModel(): ?\craft\base\Model
     {
         return new Settings();
     }
@@ -62,7 +66,7 @@ class SendcloudPlugin extends Plugin
     /**
      * @inheritdoc
      */
-    public function getSettingsResponse()
+    public function getSettingsResponse(): mixed
     {
         return Craft::$app->getResponse()->redirect(UrlHelper::cpUrl('commerce-sendcloud/settings'));
     }
@@ -70,19 +74,22 @@ class SendcloudPlugin extends Plugin
     /**
      * @inheritdoc
      */
-    public function getCpNavItem()
+    public function getCpNavItem(): ?array
     {
         $item = parent::getCpNavItem();
         $item['subnav'] = [
             'settings' => [
                 'label' => Craft::t('commerce-sendcloud', 'Settings'),
-                'url' => 'commerce-sendcloud/settings'
+                'url' => 'commerce-sendcloud/settings',
             ],
         ];
         return $item;
     }
 
-    protected function registerServices()
+    /**
+     * @return void
+     */
+    protected function registerServices(): void
     {
         $this->setComponents([
             'integrations' => Integrations::class,
@@ -91,7 +98,10 @@ class SendcloudPlugin extends Plugin
         ]);
     }
 
-    protected function registerNameOverride()
+    /**
+     * @return void
+     */
+    protected function registerNameOverride(): void
     {
         $name = $this->getSettings()->pluginNameOverride;
         if (empty($name)) {
@@ -101,47 +111,59 @@ class SendcloudPlugin extends Plugin
         $this->name = $name;
     }
 
-    protected function registerCpUrls()
+    /**
+     * @return void
+     */
+    protected function registerCpUrls(): void
     {
         Event::on(
             UrlManager::class,
             UrlManager::EVENT_REGISTER_CP_URL_RULES,
-            function(RegisterUrlRulesEvent $event) {
+            function(RegisterUrlRulesEvent $event): void {
                 $event->rules['commerce-sendcloud'] = 'commerce-sendcloud/cp/settings/index';
                 $event->rules['commerce-sendcloud/settings'] = 'commerce-sendcloud/cp/settings/index';
             }
         );
     }
 
-    protected function registerSiteUrls()
+    /**
+     * @return void
+     */
+    protected function registerSiteUrls(): void
     {
         Event::on(
             UrlManager::class,
             UrlManager::EVENT_REGISTER_SITE_URL_RULES,
-            function(RegisterUrlRulesEvent $event) {
+            function(RegisterUrlRulesEvent $event): void {
                 $event->rules['commerce-sendcloud/webhook'] = 'commerce-sendcloud/webhook/handle';
             }
         );
     }
 
-    protected function registerEventListeners()
+    /**
+     * @return void
+     */
+    protected function registerEventListeners(): void
     {
         $this->orderSync->registerEventListeners();
 
-        Event::on(Order::class, Order::EVENT_REGISTER_ACTIONS, function(RegisterElementActionsEvent $event) {
-            $user = Craft::$app->getUser()->getIdentity();
-            if ($user->can('commerce-sendcloud-pushOrders')) {
-                $event->actions[] = BulkPushToSendcloudAction::class;
-            }
-            if ($user->can('commerce-sendcloud-printLabels')) {
-                $event->actions[] = BulkPrintSendcloudLabelsAction::class;
-            }
-        });
+        Event::on(
+            Order::class,
+            Element::EVENT_REGISTER_ACTIONS,
+            function(RegisterElementActionsEvent $event): void {
+                $user = Craft::$app->getUser()->getIdentity();
+                if ($user->can('commerce-sendcloud-pushOrders')) {
+                    $event->actions[] = BulkPushToSendcloudAction::class;
+                }
+                if ($user->can('commerce-sendcloud-printLabels')) {
+                    $event->actions[] = BulkPrintSendcloudLabelsAction::class;
+                }
+            });
 
         Craft::$app->getView()->hook('cp.commerce.order.edit.details', function(array &$context) { // Commerce 3.2.0
             /** @var Order $order */
             $order = $context['order'];
-            $status = $this->orderSync->getOrderSyncStatusByOrderId($order->id);
+            $status = $this->orderSync->getOrderSyncStatusByOrderId($order->getId());
             
             return Craft::$app->getView()->renderTemplate('commerce-sendcloud/_order-details-panel', [
                 'plugin' => $this,
@@ -151,28 +173,49 @@ class SendcloudPlugin extends Plugin
         });
     }
 
+    /**
+     * @return void
+     */
     protected function registerVariables(): void
     {
-        Event::on(CraftVariable::class, CraftVariable::EVENT_INIT, static function (Event $event) {
-            $event->sender->set('commercesendcloud', SendcloudVariable::class);
-        });
+        Event::on(
+            CraftVariable::class,
+            CraftVariable::EVENT_INIT,
+            static function(Event $event): void {
+                $event->sender->set('commercesendcloud', SendcloudVariable::class);
+            }
+        );
     }
 
-    protected function registerPermissions()
+    /**
+     * @return void
+     */
+    protected function registerPermissions(): void
     {
-        Event::on(UserPermissions::class, UserPermissions::EVENT_REGISTER_PERMISSIONS, function(RegisterUserPermissionsEvent $event) {
-            $event->permissions[Craft::t('commerce-sendcloud', 'Sendcloud')] = [
-                'commerce-sendcloud-pushOrders' => ['label' => Craft::t('commerce-sendcloud', 'Manually push orders to Sendcloud')],
-                'commerce-sendcloud-printLabels' => ['label' => Craft::t('commerce-sendcloud', 'Print labels')],
+        Event::on(
+            UserPermissions::class,
+            UserPermissions::EVENT_REGISTER_PERMISSIONS,
+            function(RegisterUserPermissionsEvent $event): void {
+                $event->permissions[] = [
+                'heading' => Craft::t('commerce-sendcloud', 'Sendcloud'),
+                'permissions' => [
+                    'commerce-sendcloud-pushOrders' => [
+                        'label' => Craft::t('commerce-sendcloud', 'Manually push orders to Sendcloud'),
+                    ],
+                    'commerce-sendcloud-printLabels' => [
+                        'label' => Craft::t('commerce-sendcloud', 'Print labels'),
+                    ],
+                ],
             ];
-        });
+            });
     }
 
     /**
      * @param string $message
      * @param int $logLevel
+     * @return void
      */
-    public static function log(string $message, $logLevel = Logger::LEVEL_INFO): void
+    public static function log(string $message, int $logLevel = Logger::LEVEL_INFO): void
     {
         Craft::getLogger()->log($message, $logLevel, self::LOG_CATEGORY);
     }
@@ -180,11 +223,12 @@ class SendcloudPlugin extends Plugin
     /**
      * @param string $message
      * @param \Exception|null $exception
+     * @return void
      */
     public static function error(string $message, \Exception $exception = null): void
     {
         while ($exception !== null) {
-            $message .= "\n  " . get_class($exception) . ": " . $exception->getMessage();
+            $message .= "\n  " . $exception::class . ": " . $exception->getMessage();
             if ($exception instanceof SendCloudRequestException) {
                 $message .= "  " . $exception->getSendCloudMessage();
             }

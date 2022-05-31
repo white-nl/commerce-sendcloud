@@ -4,8 +4,9 @@
     "type": "craft-plugin",
     "license": "proprietary",
     "require": {
-        "craftcms/cms": "^3.3.0",
-        "craftcms/commerce": "^3.1",
+        "php": "^8.0.2",
+        "craftcms/cms": "^4.0.0",
+        "craftcms/commerce": "^4.0.0",
         "jouwweb/sendcloud": "3.10.1",
         "ext-json": "*"
     },
@@ -23,5 +24,25 @@
         "hasCpSection": true,
         "class": "white\\commerce\\sendcloud\\SendcloudPlugin",
         "documentationUrl": "https://white.nl/en/craft-plugins/sendcloud/docs/"
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "require-dev": {
+        "craftcms/phpstan": "dev-main",
+        "craftcms/ecs": "dev-main"
+    },
+    "scripts": {
+        "phpstan": "phpstan --memory-limit=1G",
+        "check-cs": "ecs check --ansi",
+        "fix-cs": "ecs check --ansi --fix"
+    },
+    "config": {
+        "allow-plugins": {
+            "yiisoft/yii2-composer": true,
+            "craftcms/plugin-installer": true
+        },
+        "platform": {
+            "php": "8.0.2"
+        }
     }
 }

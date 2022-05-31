@@ -3,24 +3,39 @@
 
 namespace white\commerce\sendcloud\controllers\cp;
 
-
 use Craft;
-use craft\commerce\elements\Order;
 use craft\commerce\Plugin as CommercePlugin;
+use craft\errors\MissingComponentException;
+use craft\errors\SiteNotFoundException;
 use craft\web\Controller;
+use craft\web\Response;
 use JouwWeb\SendCloud\Exception\SendCloudRequestException;
 use white\commerce\sendcloud\models\Parcel;
 use white\commerce\sendcloud\SendcloudPlugin;
-use yii\log\Logger;
+use yii\base\InvalidConfigException;
+use yii\web\BadRequestHttpException;
+use yii\web\ForbiddenHttpException;
+use yii\web\HttpException;
 use yii\web\NotFoundHttpException;
+use yii\web\RangeNotSatisfiableHttpException;
 
 class ParcelController extends Controller
 {
-    public function init()
+    public function init(): void
     {
         parent::init();
     }
 
+    /**
+     * @return Response|void|\yii\console\Response|\yii\web\Response
+     * @throws NotFoundHttpException
+     * @throws MissingComponentException
+     * @throws SiteNotFoundException
+     * @throws BadRequestHttpException
+     * @throws ForbiddenHttpException
+     * @throws HttpException
+     * @throws RangeNotSatisfiableHttpException
+     */
     public function actionPrintLabel()
     {
         $this->requirePermission('commerce-sendcloud-printLabels');
@@ -59,6 +74,16 @@ class ParcelController extends Controller
         );
     }
 
+    /**
+     * @return Response|\yii\console\Response|\yii\web\Response
+     * @throws BadRequestHttpException
+     * @throws ForbiddenHttpException
+     * @throws HttpException
+     * @throws MissingComponentException
+     * @throws RangeNotSatisfiableHttpException
+     * @throws SiteNotFoundException
+     * @throws InvalidConfigException
+     */
     public function actionBulkPrintLabels()
     {
         $this->requirePermission('commerce-sendcloud-printLabels');
@@ -96,6 +121,14 @@ class ParcelController extends Controller
         );
     }
 
+    /**
+     * @return \yii\web\Response
+     * @throws BadRequestHttpException
+     * @throws ForbiddenHttpException
+     * @throws InvalidConfigException
+     * @throws MissingComponentException
+     * @throws NotFoundHttpException
+     */
     public function actionPush()
     {
         $this->requirePermission('commerce-sendcloud-pushOrders');
@@ -123,6 +156,13 @@ class ParcelController extends Controller
         return $this->redirectToPostedUrl();
     }
 
+    /**
+     * @return \yii\web\Response
+     * @throws BadRequestHttpException
+     * @throws ForbiddenHttpException
+     * @throws InvalidConfigException
+     * @throws MissingComponentException
+     */
     public function actionBulkPush()
     {
         $this->requirePermission('commerce-sendcloud-pushOrders');
@@ -143,7 +183,6 @@ class ParcelController extends Controller
                 }
                 
                 $success++;
-                
             } catch (\Exception $e) {
                 SendcloudPlugin::error("Could not push orders to Sendcloud.", $e);
                 $errors++;

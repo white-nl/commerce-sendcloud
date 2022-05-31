@@ -2,24 +2,38 @@
 
 namespace white\commerce\sendcloud\client;
 
-use craft\base\Element;
-use craft\commerce\base\PurchasableInterface;
 use craft\commerce\elements\Order;
-use craft\commerce\elements\Variant;
-use GuzzleHttp\Exception\RequestException;
+use craft\commerce\errors\CurrencyException;
+use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\Exception\TransferException;
 use JouwWeb\SendCloud\Client;
-use JouwWeb\SendCloud\Model\Parcel;
-use JouwWeb\SendCloud\Model\Address;
 use JouwWeb\SendCloud\Exception\SendCloudRequestException;
-use white\commerce\sendcloud\models\ParcelItem;
-use white\commerce\sendcloud\SendcloudPlugin;
+use JouwWeb\SendCloud\Model\Address;
+use JouwWeb\SendCloud\Model\Parcel;
+use yii\base\InvalidConfigException;
 
 /**
  * Client to perform calls on the Sendcloud API.
  */
 class SendcloudClient extends Client
 {
+    /**
+     * @param Address $shippingAddress
+     * @param int|null $servicePointId
+     * @param string|null $orderNumber
+     * @param int|null $weight
+     * @param string|null $customsInvoiceNumber
+     * @param int|null $customsShipmentType
+     * @param array|null $items
+     * @param string|null $postNumber
+     * @param Order|null $order
+     * @return Parcel
+     * @throws GuzzleException
+     * @throws SendCloudRequestException
+     * @throws \JsonException
+     * @throws CurrencyException
+     * @throws InvalidConfigException
+     */
     public function createParcel(
         Address $shippingAddress,
         ?int $servicePointId,
@@ -29,12 +43,12 @@ class SendcloudClient extends Client
         ?int $customsShipmentType = null,
         ?array $items = null,
         ?string $postNumber = null,
-        Order $order = null
+        ?Order $order = null,
     ): Parcel {
         $parcelData = $this->getParcelData(
             null,
             $shippingAddress,
-            $servicePointId,
+            (string)$servicePointId,
             $orderNumber,
             $weight,
             false,
@@ -58,10 +72,9 @@ class SendcloudClient extends Client
                 ],
             ]);
 
-            return new Parcel(json_decode((string)$response->getBody(), true)['parcel']);
+            return new Parcel(json_decode((string)$response->getBody(), true, 512, JSON_THROW_ON_ERROR)['parcel']);
         } catch (TransferException $exception) {
             throw $this->parseGuzzleException($exception, 'Could not create parcel in Sendcloud.');
         }
     }
-
 }

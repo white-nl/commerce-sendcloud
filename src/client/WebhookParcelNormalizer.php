@@ -8,14 +8,18 @@ use yii\helpers\ArrayHelper;
 
 final class WebhookParcelNormalizer
 {
-    private $parcelId;
-    private $orderNumber;
-    private $statusId;
-    private $statusMessage;
-    private $carrier;
-    private $trackingNumber;
-    private $trackingUrl;
+    private int $parcelId;
+    private string $orderNumber;
+    private int $statusId;
+    private string $statusMessage;
+    private string|null $carrier;
+    private string $trackingNumber;
+    private string|null  $trackingUrl;
 
+    /**
+     * @param array $params
+     * @throws \Exception
+     */
     public function __construct(array $params)
     {
         if (null === $this->statusId = ArrayHelper::getValue($params, 'status.id')) {

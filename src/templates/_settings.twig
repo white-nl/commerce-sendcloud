@@ -143,6 +143,9 @@
                         },
                     },
                     rows: settings.orderStatusMapping,
+                    allowAdd: true,
+                    allowReorder: true,
+                    allowDelete: true,
                     static:     not allowAdminChanges,
                 }) }}
                 
@@ -167,6 +170,19 @@
                     options:      settings.getAvailableTextFields(),
                     value:        settings.originCountryFieldHandle,
                     errors:       settings.getErrors('originCountryFieldHandle'),
+                    disabled:     not allowAdminChanges,
+                }) }}
+
+                <h3>{{ "Address fields"|t('commerce-sendcloud') }}</h3>
+
+                {{ forms.selectField({
+                    label:        "Phone number field"|t('commerce-sendcloud'),
+                    instructions: "Select the Craft field linked to the Address element containing the phone number"|t('commerce-sendcloud'),
+                    id:           'phoneNumberFieldHandle',
+                    name:         'phoneNumberFieldHandle',
+                    options:      settings.getAvailableTextFields(),
+                    value:        settings.phoneNumberFieldHandle,
+                    errors:       settings.getErrors('phoneNumberFieldHandle'),
                     disabled:     not allowAdminChanges,
                 }) }}
             </div>

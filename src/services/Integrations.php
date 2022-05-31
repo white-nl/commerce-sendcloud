@@ -6,29 +6,34 @@ use craft\base\Component;
 use white\commerce\sendcloud\models\Integration;
 use white\commerce\sendcloud\records\Integration as IntegrationRecord;
 use yii\base\InvalidArgumentException;
+use yii\db\StaleObjectException;
 
+/**
+ *
+ * @property-read Integration[] $allIntegrations
+ */
 class Integrations extends Component
 {
     /**
      * @param int $id
      * @return Integration|null
      */
-    public function getIntegrationById(int $id)
+    public function getIntegrationById(int $id): ?Integration
     {
         $record = IntegrationRecord::findOne(['id' => $id]);
         
-        return $record != null ? new Integration($record) : null;
+        return $record != null ? new Integration($record->toArray()) : null;
     }
 
     /**
      * @param int $siteId
      * @return Integration|null
      */
-    public function getIntegrationBySiteId(int $siteId)
+    public function getIntegrationBySiteId(int $siteId): ?Integration
     {
         $record = IntegrationRecord::findOne(['siteId' => $siteId]);
 
-        return $record != null ? new Integration($record) : null;
+        return $record != null ? new Integration($record->toArray()) : null;
     }
 
     /**
@@ -38,7 +43,7 @@ class Integrations extends Component
     {
         $result = [];
         foreach (IntegrationRecord::find()->all() as $record) {
-            $result[] = new Integration($record);
+            $result[] = new Integration($record->toArray());
         }
         
         return $result;
@@ -51,10 +56,11 @@ class Integrations extends Component
      */
     public function saveIntegration(Integration $model, bool $runValidation = true): bool
     {
-        if ($model->id) {
+        if (isset($model->id)) {
+            /** @var IntegrationRecord $record */
             $record = IntegrationRecord::findOne($model->id);
-            if (!$record) {
-                throw new InvalidArgumentException('No integration exists with the ID “{id}”', ['id' => $model->id]);
+            if ($record == null) {
+                throw new InvalidArgumentException('No integration exists with the ID “' . $model->id . '”');
             }
         } else {
             $record = new IntegrationRecord();
@@ -63,7 +69,7 @@ class Integrations extends Component
         if ($runValidation && !$model->validate()) {
             return false;
         }
-        
+
         $record->siteId = $model->siteId;
         $record->token = $model->token;
         $record->externalId = $model->externalId;
@@ -76,7 +82,7 @@ class Integrations extends Component
         $record->servicePointCarriers = $model->servicePointCarriers;
 
         $record->save(false);
-        $model->id = $record->id;
+        $model->id = $record->getAttribute('id');
         
         return true;
     }
@@ -85,12 +91,12 @@ class Integrations extends Component
      * @param int $id
      * @return bool
      * @throws \Throwable
-     * @throws \yii\db\StaleObjectException
+     * @throws StaleObjectException
      */
     public function deleteIntegrationById(int $id): bool
     {
         $record = IntegrationRecord::findOne($id);
-        if (!$record) {
+        if (!$record instanceof IntegrationRecord) {
             return false;
         }
 

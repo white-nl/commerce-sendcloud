@@ -3,10 +3,12 @@
 
 namespace white\commerce\sendcloud\services;
 
-
 use craft\base\Component;
+use craft\base\Element;
 use craft\commerce\elements\Order;
+use craft\errors\SiteNotFoundException;
 use craft\events\ModelEvent;
+use Exception;
 use JouwWeb\SendCloud\Exception\SendCloudRequestException;
 use white\commerce\sendcloud\models\OrderSyncStatus;
 use white\commerce\sendcloud\records\OrderSyncStatus as OrderSyncStatusRecord;
@@ -18,10 +20,9 @@ use yii\log\Logger;
 
 class OrderSync extends Component
 {
-    /** @var SendcloudApi */
-    private $sendcloudApi;
+    private ?SendcloudApi $sendcloudApi = null;
 
-    public function init()
+    public function init(): void
     {
         parent::init();
         
@@ -30,51 +31,48 @@ class OrderSync extends Component
 
     /**
      * Gets order synchronization status based on Craft order ID.
-     * 
-     * @param $orderId
+     * @param int $orderId
      * @return OrderSyncStatus|null
      */
-    public function getOrderSyncStatusByOrderId($orderId): ?OrderSyncStatus
+    public function getOrderSyncStatusByOrderId(int $orderId): ?OrderSyncStatus
     {
         $record = OrderSyncStatusRecord::findOne([
             'orderId' => $orderId,
         ]);
-        if (!$record) {
+        if (!$record instanceof \white\commerce\sendcloud\records\OrderSyncStatus) {
             return null;
         }
 
-        return new OrderSyncStatus($record);
+        return new OrderSyncStatus($record->toArray());
     }
 
     /**
      * Gets order synchronization status based on Sendcloud parcel ID.
-     * 
-     * @param integer $parcelId
+     * @param int $parcelId
      * @return OrderSyncStatus|null
      */
-    public function getOrderSyncStatusByParcelId($parcelId): ?OrderSyncStatus
+    public function getOrderSyncStatusByParcelId(int $parcelId): ?OrderSyncStatus
     {
         $record = OrderSyncStatusRecord::findOne([
             'parcelId' => $parcelId,
         ]);
-        if (!$record) {
+        if (!$record instanceof \white\commerce\sendcloud\records\OrderSyncStatus) {
             return null;
         }
 
-        return new OrderSyncStatus($record);
+        return new OrderSyncStatus($record->toArray());
     }
 
     /**
      * Gets the order synchronization status or creates a new status if couldn't find any existing one.
-     * 
      * @param Order $order
      * @return OrderSyncStatus
      */
     public function getOrCreateOrderSyncStatus(Order $order): OrderSyncStatus
     {
-        $model = $this->getOrderSyncStatusByOrderId($order->id);
-        if (!$model) {
-            return new OrderSyncStatus(['orderId' => $order->id]);
+        $model = $this->getOrderSyncStatusByOrderId($order->getId());
+        if (!$model instanceof \white\commerce\sendcloud\models\OrderSyncStatus) {
+            return new OrderSyncStatus(['orderId' => $order->getId()]);
         }
 
         return $model;
@@ -82,17 +80,17 @@ class OrderSync extends Component
 
     /**
      * Saves the order synchronization status.
-     * 
      * @param OrderSyncStatus $model
      * @param bool $runValidation
      * @return bool
+     * @throws Exception
      */
     public function saveOrderSyncStatus(OrderSyncStatus $model, bool $runValidation = true): bool
     {
-        if ($model->id) {
+        if (isset($model->id)) {
             $record = OrderSyncStatusRecord::findOne($model->id);
-            if (!$record) {
-                throw new InvalidArgumentException('No order sync status exists with the ID “{id}”', ['id' => $model->id]);
+            if (!$record instanceof \white\commerce\sendcloud\records\OrderSyncStatus) {
+                throw new InvalidArgumentException('No order sync status exists with the ID “' . $model->id . '”');
             }
         } else {
             $record = new OrderSyncStatusRecord([
@@ -115,40 +113,40 @@ class OrderSync extends Component
         $record->lastWebhookTimestamp = $model->lastWebhookTimestamp;
 
         $record->save(false);
-        $model->id = $record->id;
-        $model->dateCreated = $record->dateCreated;
+        $model->id = $record->getAttribute('id');
+        $model->dateCreated = new \DateTime($record->dateCreated);
 
         return true;
     }
 
     /**
      * Deletes order status.
-     * 
-     * @param integer $id
+     * @param int $id
      * @return bool
      */
-    public function deleteOrderSyncStatusById($id): bool
+    public function deleteOrderSyncStatusById(int $id): bool
     {
         return OrderSyncStatusRecord::deleteAll(['id' => $id]) > 0;
     }
 
     /**
      * Registers Craft event listeners required for order synchronization.
+     * @return void
      */
-    public function registerEventListeners()
+    public function registerEventListeners(): void
     {
         Event::on(
             Order::class,
-            Order::EVENT_AFTER_SAVE,
-            function (ModelEvent $event) {
+            Element::EVENT_AFTER_SAVE,
+            function(ModelEvent $event): void {
                 if ($event->sender->propagating) {
                     return;
                 }
 
                 try {
                     $this->syncOrder($event->sender);
-                } catch (\Exception $e) {
-                    SendcloudPlugin::error("Could not synchronize an order with Sendcloud.", $e);
+                } catch (Exception $exception) {
+                    SendcloudPlugin::error("Could not synchronize an order with Sendcloud.", $exception);
                 }
             }
         );
@@ -157,28 +155,31 @@ class OrderSync extends Component
         Event::on(
             Order::class,
             Order::EVENT_BEFORE_COMPLETE_ORDER,
-            function (Event $event) {
+            function(Event $event): void {
                 if ($event->sender->propagating) {
                     return;
                 }
+
                 /** @var Order $order */
                 $order = $event->sender;
-                $status = $this->getOrderSyncStatusByOrderId($order->id);
+                $status = $this->getOrderSyncStatusByOrderId($order->getId());
                 $isSendcloudShipping = false;
 
                 if ($status && $status->servicePoint) {
                     foreach ($this->sendcloudApi->getClient()->getShippingMethods() as $method) {
                         // Find the matching sendcloud shipping
-                        if ($method->getName() == $order->shippingMethod->getName()) {
+                        if ($method->getName() == $order->getShippingMethod()->getName()) {
                             $isSendcloudShipping = true;
                             if (!$method->getAllowsServicePoints()) {
                                 // remove the servicePoint info
                                 $status->servicePoint = null;
                                 $this->saveOrderSyncStatus($status);
                             }
+
                             break;
                         }
                     }
+
                     if (!$isSendcloudShipping) {
                         // remove the servicePoint info
                         $status->servicePoint = null;
@@ -191,24 +192,24 @@ class OrderSync extends Component
 
     /**
      * Synchronizes the order with Sendcloud according to the mapping defined in the plugin settings.
-     * 
      * @param Order $order
-     * @throws \Exception
+     * @return void
+     * @throws Exception
      */
-    public function syncOrder(Order $order)
+    public function syncOrder(Order $order): void
     {
         if (!$order->isCompleted) {
             return;
         }
         
         $orderStatus = $order->getOrderStatus();
-        if (!$orderStatus) {
+        if (!$orderStatus instanceof \craft\commerce\models\OrderStatus) {
             return;
         }
         
         $settings = SendcloudPlugin::getInstance()->getSettings();
         
-        if (!in_array($orderStatus->handle, $settings->orderStatusesToPush) && !in_array($orderStatus->handle, $settings->orderStatusesToCreateLabel)) {
+        if (!in_array($orderStatus->handle, $settings->orderStatusesToPush, true) && !in_array($orderStatus->handle, $settings->orderStatusesToCreateLabel, true)) {
             return;
         }
         
@@ -218,20 +219,19 @@ class OrderSync extends Component
         
         $this->pushOrder($order);
         
-        if (in_array($orderStatus->handle, $settings->orderStatusesToCreateLabel)) {
+        if (in_array($orderStatus->handle, $settings->orderStatusesToCreateLabel, true)) {
             $this->createLabel($order);
         }
     }
 
     /**
      * Pushes the order to Sendcloud that hasn't been pushed yet.
-     * 
      * @param Order $order
      * @param bool $force
      * @return bool
-     * @throws \craft\errors\SiteNotFoundException
+     * @throws SiteNotFoundException
      */
-    public function pushOrder(Order $order, $force = false)
+    public function pushOrder(Order $order, bool $force = false): bool
     {
         $status = $this->getOrCreateOrderSyncStatus($order);
         if ($status->isPushed() && !$force) {
@@ -245,24 +245,24 @@ class OrderSync extends Component
             if ($status->isPushed()) {
                 try {
                     $parcel = $client->updateParcel($status->parcelId, $order);
-                } catch (SendCloudRequestException $e) {
-                    if ($e->getSendCloudCode() != 404) {
-                        throw $e;
+                } catch (SendCloudRequestException $sendCloudRequestException) {
+                    if ($sendCloudRequestException->getSendCloudCode() != 404) {
+                        throw $sendCloudRequestException;
                     }
                 }
             }
             
-            if (!$parcel) {
+            if ($parcel === null) {
                 $parcel = $client->createParcel($order, $status->getServicePointId());
             }
     
             $status->fillFromParcel($parcel);
             $status->lastError = null;
             if (!$this->saveOrderSyncStatus($status)) {
-                throw new \Exception("Could not save order sync status: " . VarDumper::dumpAsString($status->errors));
+                throw new \RuntimeException("Could not save order sync status: " . VarDumper::dumpAsString($status->getErrors()));
             }
-        } catch (\Exception $e) {
-            $status->lastError = $e instanceof SendCloudRequestException ? $e->getSendCloudMessage() : $e->getMessage();
+        } catch (Exception $exception) {
+            $status->lastError = $exception instanceof SendCloudRequestException ? $exception->getSendCloudMessage() : $exception->getMessage();
             $this->saveOrderSyncStatus($status);
 
             return false;
@@ -271,7 +271,12 @@ class OrderSync extends Component
         return true;
     }
 
-    public function createLabel(Order $order)
+    /**
+     * @param Order $order
+     * @return bool
+     * @throws SiteNotFoundException
+     */
+    public function createLabel(Order $order): bool
     {
         $client = $this->sendcloudApi->getClient();
 
@@ -287,10 +292,10 @@ class OrderSync extends Component
             $status->fillFromParcel($parcel);
             $status->lastError = null;
             if (!$this->saveOrderSyncStatus($status)) {
-                throw new \Exception("Could not save order sync status: " . VarDumper::dumpAsString($status->errors));
+                throw new \RuntimeException("Could not save order sync status: " . VarDumper::dumpAsString($status->getErrors()));
             }
-        } catch (\Exception $e) {
-            $status->lastError = $e instanceof SendCloudRequestException ? $e->getSendCloudMessage() : $e->getMessage();
+        } catch (Exception $exception) {
+            $status->lastError = $exception instanceof SendCloudRequestException ? $exception->getSendCloudMessage() : $exception->getMessage();
             $this->saveOrderSyncStatus($status);
             
             return false;
@@ -299,20 +304,25 @@ class OrderSync extends Component
         return true;
     }
 
+    /**
+     * @param Order $order
+     * @return bool
+     * @throws SiteNotFoundException
+     */
     protected function validateOrder(Order $order): bool
     {
-        if (!$order->shippingAddress) {
+        if ($order->getShippingAddress() === null) {
             SendcloudPlugin::log("Shipping address not found", Logger::LEVEL_WARNING);
             return false;
         }
-        
-        if (!$order->shippingMethod) {
+
+        if ($order->getShippingMethod() === null) {
             SendcloudPlugin::log("Order shipping method not found", Logger::LEVEL_WARNING);
             return false;
         }
 
         $client = $this->sendcloudApi->getClient();
-        if (!isset($client->getShippingMethods()[$order->shippingMethod->getName()])) {
+        if (!isset($client->getShippingMethods()[$order->getShippingMethod()->getName()])) {
             SendcloudPlugin::log("Sendcloud shipping method not found", Logger::LEVEL_WARNING);
             return false;
         }

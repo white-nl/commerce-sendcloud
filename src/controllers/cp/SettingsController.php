@@ -3,31 +3,40 @@
 
 namespace white\commerce\sendcloud\controllers\cp;
 
-
 use Craft;
 use craft\commerce\Plugin as CommercePlugin;
+use craft\errors\MissingComponentException;
+use craft\errors\SiteNotFoundException;
 use craft\helpers\ArrayHelper;
 use craft\helpers\StringHelper;
 use craft\helpers\UrlHelper;
 use craft\web\Controller;
 use white\commerce\sendcloud\models\Integration;
 use white\commerce\sendcloud\SendcloudPlugin;
+use yii\base\Exception;
+use yii\base\InvalidConfigException;
+use yii\db\StaleObjectException;
+use yii\web\BadRequestHttpException;
 use yii\web\NotFoundHttpException;
+use yii\web\Response;
 
 class SettingsController extends Controller
 {
-    const DEFAULT_SENDCLOUD_CONNECT_URL = 'https://panel.sendcloud.sc/shops/craft-commerce/connect/';
+    public const DEFAULT_SENDCLOUD_CONNECT_URL = 'https://panel.sendcloud.sc/shops/craft-commerce/connect/';
     
     public $sendcloudConnectUrl = self::DEFAULT_SENDCLOUD_CONNECT_URL;
     
-    public function init()
+    public function init(): void
     {
         parent::init();
 
         $this->requirePermission('accessPlugin-commerce-sendcloud');
     }
 
-    public function actionIndex()
+    /**
+     * @return Response
+     */
+    public function actionIndex(): Response
     {
         $integrationService = SendcloudPlugin::getInstance()->integrations;
         
@@ -42,7 +51,15 @@ class SettingsController extends Controller
         ]);
     }
 
-    public function actionConnect()
+    /**
+     * @return Response
+     * @throws NotFoundHttpException
+     * @throws MissingComponentException
+     * @throws Exception
+     * @throws BadRequestHttpException
+     * @throws \Exception
+     */
+    public function actionConnect(): Response
     {
         $siteId = Craft::$app->getRequest()->getRequiredBodyParam('siteId');
         $site = Craft::$app->getSites()->getSiteById($siteId);
@@ -88,7 +105,11 @@ class SettingsController extends Controller
         return $this->redirect($url);
     }
 
-    public function actionGetIntegrationStatus($siteId)
+    /**
+     * @param int $siteId
+     * @return Response
+     */
+    public function actionGetIntegrationStatus(int $siteId): Response
     {
         $integrationService = SendcloudPlugin::getInstance()->integrations;
         
@@ -116,7 +137,14 @@ class SettingsController extends Controller
         ]);
     }
 
-    public function actionDisconnect()
+    /**
+     * @return Response
+     * @throws BadRequestHttpException
+     * @throws MissingComponentException
+     * @throws \Throwable
+     * @throws StaleObjectException
+     */
+    public function actionDisconnect(): Response
     {
         $siteId = $this->request->getRequiredBodyParam('siteId');
 
@@ -138,7 +166,13 @@ class SettingsController extends Controller
         return $this->redirectToPostedUrl();
     }
 
-    public function actionGetShippingMethods()
+    /**
+     * @return Response
+     * @throws BadRequestHttpException
+     * @throws SiteNotFoundException
+     * @throws InvalidConfigException
+     */
+    public function actionGetShippingMethods(): Response
     {
         $siteId = $this->request->getRequiredParam('siteId');
 
@@ -158,8 +192,7 @@ class SettingsController extends Controller
         $craftShippingMethods = CommercePlugin::getInstance()->getShippingMethods()->getAllShippingMethods();
         $craftShippingMethods = ArrayHelper::index($craftShippingMethods, 'name');
 
-        $craftCountries = CommercePlugin::getInstance()->getCountries()->getAllEnabledCountries();
-        $craftCountries = ArrayHelper::index($craftCountries, 'iso');
+        $craftCountries = CommercePlugin::getInstance()->getStore()->getStore()->getCountriesList();
 
         $result = [];
         foreach ($shippingMethods as $shippingMethod) {

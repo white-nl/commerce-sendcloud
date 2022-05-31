@@ -6,11 +6,34 @@ use DateTimeImmutable;
 
 final class Parcel
 {
+    /**
+     * @var int
+     */
     public const LABEL_FORMAT_A6 = 1;
+
+    /**
+     * @var int
+     */
     public const LABEL_FORMAT_A4_TOP_LEFT = 2;
+
+    /**
+     * @var int
+     */
     public const LABEL_FORMAT_A4_TOP_RIGHT = 3;
+
+    /**
+     * @var int
+     */
     public const LABEL_FORMAT_A4_BOTTOM_LEFT = 4;
+
+    /**
+     * @var int
+     */
     public const LABEL_FORMAT_A4_BOTTOM_RIGHT = 5;
+
+    /**
+     * @var int[]
+     */
     public const LABEL_FORMATS = [
         self::LABEL_FORMAT_A6,
         self::LABEL_FORMAT_A4_TOP_LEFT,
@@ -20,31 +43,134 @@ final class Parcel
     ];
 
     // Obtained from https://panel.sendcloud.sc/api/v2/parcels/statuses (with API auth)
+    /**
+     * @var int
+     */
     public const STATUS_ANNOUNCED = 1;
+
+    /**
+     * @var int
+     */
     public const STATUS_EN_ROUTE_TO_SORTING_CENTER = 3;
+
+    /**
+     * @var int
+     */
     public const STATUS_DELIVERY_DELAYED = 4;
+
+    /**
+     * @var int
+     */
     public const STATUS_SORTED = 5;
+
+    /**
+     * @var int
+     */
     public const STATUS_NOT_SORTED = 6;
+
+    /**
+     * @var int
+     */
     public const STATUS_BEING_SORTED = 7;
+
+    /**
+     * @var int
+     */
     public const STATUS_DELIVERY_ATTEMPT_FAILED = 8;
+
+    /**
+     * @var int
+     */
     public const STATUS_DELIVERED = 11;
+
+    /**
+     * @var int
+     */
     public const STATUS_AWAITING_CUSTOMER_PICKUP = 12;
+
+    /**
+     * @var int
+     */
     public const STATUS_ANNOUNCED_NOT_COLLECTED = 13;
+
+    /**
+     * @var int
+     */
     public const STATUS_ERROR_COLLECTING = 15;
+
+    /**
+     * @var int
+     */
     public const STATUS_SHIPMENT_PICKED_UP_BY_DRIVER = 22;
+
+    /**
+     * @var int
+     */
     public const STATUS_UNABLE_TO_DELIVER = 80;
+
+    /**
+     * @var int
+     */
     public const STATUS_PARCEL_EN_ROUTE = 91;
+
+    /**
+     * @var int
+     */
     public const STATUS_DRIVER_EN_ROUTE = 92;
+
+    /**
+     * @var int
+     */
     public const STATUS_SHIPMENT_COLLECTED_BY_CUSTOMER = 93;
+
+    /**
+     * @var int
+     */
     public const STATUS_NO_LABEL = 999;
+
+    /**
+     * @var int
+     */
     public const STATUS_READY_TO_SEND = 1000;
+
+    /**
+     * @var int
+     */
     public const STATUS_BEING_ANNOUNCED = 1001;
+
+    /**
+     * @var int
+     */
     public const STATUS_ANNOUNCEMENT_FAILED = 1002;
+
+    /**
+     * @var int
+     */
     public const STATUS_UNKNOWN_STATUS = 1337;
+
+    /**
+     * @var int
+     */
     public const STATUS_CANCELLED_UPSTREAM = 1998;
+
+    /**
+     * @var int
+     */
     public const STATUS_CANCELLATION_REQUESTED = 1999;
+
+    /**
+     * @var int
+     */
     public const STATUS_CANCELLED = 2000;
+
+    /**
+     * @var int
+     */
     public const STATUS_SUBMITTING_CANCELLATION_REQUEST = 2001;
+
+    /**
+     * @var int[]
+     */
     public const STATUSES = [
         self::STATUS_ANNOUNCED,
         self::STATUS_EN_ROUTE_TO_SORTING_CENTER,
@@ -73,44 +199,32 @@ final class Parcel
         self::STATUS_SUBMITTING_CANCELLATION_REQUEST,
     ];
 
-    /** @var DateTimeImmutable */
-    private $created;
+    private ?\DateTimeImmutable $created = null;
 
-    /** @var string */
-    private $trackingNumber;
+    private ?string $trackingNumber = null;
 
-    /** @var string */
-    private $statusMessage;
+    private ?string $statusMessage = null;
 
-    /** @var int */
-    private $statusId;
+    private ?int $statusId = null;
 
-    /** @var int */
-    private $id;
+    private ?int $id = null;
 
     /** @var string[]|null */
-    public $labelUrls;
+    public ?array $labelUrls;
 
-    /** @var string|null */
-    private $trackingUrl;
+    private ?string $trackingUrl = null;
 
-    /** @var Address */
-    private $address;
+    private ?Address $address = null;
 
-    /** @var int */
-    private $weight;
+    private ?int $weight = null;
 
-    /** @var string|null */
-    private $carrier;
+    private ?string $carrier = null;
 
-    /** @var string|null */
-    private $orderNumber;
+    private ?string $orderNumber = null;
 
-    /** @var int|null */
-    private $shippingMethodId;
+    private ?int $shippingMethodId = null;
 
-    /** @var int|null */
-    private $servicePointId;
+    private ?int $servicePointId = null;
 
     /**
      * @return DateTimeImmutable
@@ -122,6 +236,7 @@ final class Parcel
 
     /**
      * @param DateTimeImmutable $created
+     * @return void
      */
     public function setCreated(DateTimeImmutable $created): void
     {
@@ -129,7 +244,7 @@ final class Parcel
     }
 
     /**
-     * @return string
+     * @return string|null
      */
     public function getTrackingNumber(): ?string
     {
@@ -138,6 +253,7 @@ final class Parcel
 
     /**
      * @param string $trackingNumber
+     * @return void
      */
     public function setTrackingNumber(string $trackingNumber): void
     {
@@ -154,6 +270,7 @@ final class Parcel
 
     /**
      * @param string $statusMessage
+     * @return void
      */
     public function setStatusMessage(string $statusMessage): void
     {
@@ -170,6 +287,7 @@ final class Parcel
 
     /**
      * @param int $statusId
+     * @return void
      */
     public function setStatusId(int $statusId): void
     {
@@ -186,6 +304,7 @@ final class Parcel
 
     /**
      * @param int $id
+     * @return void
      */
     public function setId(int $id): void
     {
@@ -211,6 +330,7 @@ final class Parcel
 
     /**
      * @param string|null $trackingUrl
+     * @return void
      */
     public function setTrackingUrl(?string $trackingUrl): void
     {
@@ -227,6 +347,7 @@ final class Parcel
 
     /**
      * @param Address $address
+     * @return void
      */
     public function setAddress(Address $address): void
     {
@@ -243,6 +364,7 @@ final class Parcel
 
     /**
      * @param int $weight
+     * @return void
      */
     public function setWeight(int $weight): void
     {
@@ -259,6 +381,7 @@ final class Parcel
 
     /**
      * @param string|null $carrier
+     * @return void
      */
     public function setCarrier(?string $carrier): void
     {
@@ -274,7 +397,8 @@ final class Parcel
     }
 
     /**
-     * @param string|null $orderNumber
+     * @param string $orderNumber
+     * @return void
      */
     public function setOrderNumber(string $orderNumber): void
     {
@@ -291,6 +415,7 @@ final class Parcel
 
     /**
      * @param int|null $shippingMethodId
+     * @return void
      */
     public function setShippingMethodId(?int $shippingMethodId): void
     {
@@ -307,6 +432,7 @@ final class Parcel
 
     /**
      * @param int|null $servicePointId
+     * @return void
      */
     public function setServicePointId(?int $servicePointId): void
     {
@@ -331,9 +457,7 @@ final class Parcel
             'carrier' => $this->getCarrier(),
             'created' => $this->getCreated()->format(DATE_ATOM),
             'id' => $this->getId(),
-            'labels' => array_map(function ($format) {
-                return $this->getLabelUrl($format);
-            }, self::LABEL_FORMATS),
+            'labels' => array_map(fn($format) => $this->getLabelUrl($format), self::LABEL_FORMATS),
             'orderNumber' => $this->getOrderNumber(),
             'servicePointId' => $this->getServicePointId(),
             'shippingMethodId' => $this->getShippingMethodId(),

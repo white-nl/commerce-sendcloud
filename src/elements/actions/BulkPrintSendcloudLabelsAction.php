@@ -3,7 +3,6 @@
 
 namespace white\commerce\sendcloud\elements\actions;
 
-
 use Craft;
 use craft\base\ElementAction;
 use craft\helpers\Json;
@@ -15,7 +14,7 @@ class BulkPrintSendcloudLabelsAction extends ElementAction
         return Craft::t('commerce-sendcloud', "Print Sendcloud Labels");
     }
 
-    public function getTriggerHtml()
+    public function getTriggerHtml(): ?string
     {
         $type = Json::encode(static::class);
 

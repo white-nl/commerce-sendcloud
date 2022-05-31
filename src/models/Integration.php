@@ -4,47 +4,54 @@
 namespace white\commerce\sendcloud\models;
 
 use craft\base\Model;
+use DateTime;
 
+/**
+ *
+ * @property-read bool $isActive
+ */
 class Integration extends Model
 {
-    /** @var integer */
-    public $id;
+    /** @var int */
+    public int $id;
 
     /** @var integer */
-    public $siteId;
+    public int $siteId;
 
     /** @var string */
-    public $token;
+    public string $token;
 
-    /** @var integer */
-    public $externalId;
-
-    /** @var string */
-    public $publicKey;
+    /** @var integer|null */
+    public ?int $externalId = null;
 
     /** @var string */
-    public $secretKey;
+    public string $publicKey = '';
 
     /** @var string */
-    public $system;
+    public string $secretKey = '';
 
     /** @var string */
-    public $shopUrl;
+    public string $system = '';
 
     /** @var string */
-    public $webhookUrl;
+    public string $shopUrl = '';
+
+    /** @var string */
+    public string $webhookUrl = '';
 
     /** @var boolean */
-    public $servicePointEnabled = false;
-    
-    /** @var array */
-    public $servicePointCarriers = [];
-    
-    public $dateCreated;
-    public $dateUpdated;
-    public $uid;
+    public bool $servicePointEnabled = false;
 
-    public function rules()
+    /** @var array */
+    public array $servicePointCarriers = [];
+
+    public DateTime $dateCreated;
+
+    public DateTime $dateUpdated;
+
+    public string $uid;
+
+    public function rules(): array
     {
         return [
             [['siteId', 'token'], 'required'],
@@ -53,7 +60,7 @@ class Integration extends Model
         ];
     }
 
-    public function getIsActive()
+    public function getIsActive(): bool
     {
         return !empty($this->externalId) && !empty($this->publicKey) && !empty($this->secretKey);
     }
