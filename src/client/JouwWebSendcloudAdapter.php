@@ -2,6 +2,7 @@
 
 namespace white\commerce\sendcloud\client;
 
+use Craft;
 use craft\base\Element;
 use craft\commerce\base\PurchasableInterface;
 use craft\commerce\elements\Order;
@@ -149,16 +150,18 @@ final class JouwWebSendcloudAdapter implements SendcloudInterface
     public function getShippingMethods(): array
     {
         if (!$this->sendcloudShippingMethods) {
-            $sendcloudShippingMethods = $this->client->getShippingMethods();
-            $this->sendcloudShippingMethods = ArrayHelper::map(
-                $sendcloudShippingMethods,
-                static function (ShippingMethod $method) {
-                    return $method->getName();
-                },
-                static function (ShippingMethod $method) {
-                    return $method;
-                }
-            );
+            $this->sendcloudShippingMethods = Craft::$app->getCache()->getOrSet('sendcloud-shipping-methods', function() {
+                $sendcloudShippingMethods = $this->client->getShippingMethods();
+                return ArrayHelper::map(
+                    $sendcloudShippingMethods,
+                    static function (ShippingMethod $method) {
+                        return $method->getName();
+                    },
+                    static function (ShippingMethod $method) {
+                        return $method;
+                    }
+                );
+            }, 3600);
         }
 
         return $this->sendcloudShippingMethods;
