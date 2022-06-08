@@ -1,5 +1,10 @@
 # Release Notes for Craft Sendcloud Plugin
 
+## 2.1.0 - 2022-06-08
+
+### Changed
+- Moved the creation of Sendcloud parcels to a queue job
+
 ## 2.0.0 - 2022-05-31
 
 ### Added

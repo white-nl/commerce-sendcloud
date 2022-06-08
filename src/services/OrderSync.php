@@ -3,14 +3,17 @@
 
 namespace white\commerce\sendcloud\services;
 
+use Craft;
 use craft\base\Component;
 use craft\base\Element;
 use craft\commerce\elements\Order;
 use craft\errors\SiteNotFoundException;
 use craft\events\ModelEvent;
+use craft\helpers\Queue;
 use Exception;
 use JouwWeb\SendCloud\Exception\SendCloudRequestException;
 use white\commerce\sendcloud\models\OrderSyncStatus;
+use white\commerce\sendcloud\queue\jobs\PushOrder;
 use white\commerce\sendcloud\records\OrderSyncStatus as OrderSyncStatusRecord;
 use white\commerce\sendcloud\SendcloudPlugin;
 use yii\base\Event;
@@ -217,7 +220,12 @@ class OrderSync extends Component
             return;
         }
         
-        $this->pushOrder($order);
+        $createLabel = in_array($orderStatus->handle, $settings->orderStatusesToCreateLabel, true);
+
+        Queue::push(new PushOrder([
+            'orderId' => $order->getId(),
+            'createLabel' => $createLabel,
+        ]));
         
         if (in_array($orderStatus->handle, $settings->orderStatusesToCreateLabel, true)) {
             $this->createLabel($order);
@@ -233,14 +241,20 @@ class OrderSync extends Component
      */
     public function pushOrder(Order $order, bool $force = false): bool
     {
-        $status = $this->getOrCreateOrderSyncStatus($order);
-        if ($status->isPushed() && !$force) {
+        $lockName = 'sendcloud:pushOrder:' . $order->getId();
+        $mutex = Craft::$app->getMutex();
+        if (!$mutex->acquire($lockName, 5)) {
             return false;
         }
-
-        $client = $this->sendcloudApi->getClient();
+        $status = $this->getOrCreateOrderSyncStatus($order);
         
         try {
+            if ($status->isPushed() && !$force) {
+                return false;
+            }
+
+            $client = $this->sendcloudApi->getClient();
+
             $parcel = null;
             if ($status->isPushed()) {
                 try {
@@ -266,6 +280,8 @@ class OrderSync extends Component
             $this->saveOrderSyncStatus($status);
 
             return false;
+        } finally {
+            $mutex->release($lockName);
         }
 
         return true;
@@ -278,15 +294,19 @@ class OrderSync extends Component
      */
     public function createLabel(Order $order): bool
     {
-        $client = $this->sendcloudApi->getClient();
-
-        $status = $this->getOrCreateOrderSyncStatus($order);
-
-        if (!$status->isPushed() || $status->isLabelCreated()) {
+        $lockName = 'sendcloud:createLabel:' . $order->getId();
+        $mutex = Craft::$app->getMutex();
+        if (!$mutex->acquire($lockName, 5)) {
             return false;
         }
+        $status = $this->getOrCreateOrderSyncStatus($order);
 
         try {
+            $client = $this->sendcloudApi->getClient();
+            if (!$status->isPushed() || $status->isLabelCreated()) {
+                return false;
+            }
+
             $parcel = $client->createLabel($order, $status->parcelId);
 
             $status->fillFromParcel($parcel);
@@ -299,6 +319,8 @@ class OrderSync extends Component
             $this->saveOrderSyncStatus($status);
             
             return false;
+        } finally {
+            $mutex->release($lockName);
         }
 
         return true;
