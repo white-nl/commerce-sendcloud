@@ -1,17 +1,15 @@
 <?php
 
-
 namespace white\commerce\sendcloud\controllers\cp;
 
-
 use Craft;
-use craft\commerce\elements\Order;
 use craft\commerce\Plugin as CommercePlugin;
+use craft\helpers\Queue;
 use craft\web\Controller;
 use JouwWeb\SendCloud\Exception\SendCloudRequestException;
 use white\commerce\sendcloud\models\Parcel;
+use white\commerce\sendcloud\queue\jobs\PushOrder;
 use white\commerce\sendcloud\SendcloudPlugin;
-use yii\log\Logger;
 use yii\web\NotFoundHttpException;
 
 class ParcelController extends Controller
@@ -128,33 +126,20 @@ class ParcelController extends Controller
         $this->requirePermission('commerce-sendcloud-pushOrders');
 
         $orderIds = Craft::$app->getRequest()->getParam('orderIds');
-        
-        $success = 0;
-        $errors = 0;
+
         foreach ($orderIds as $orderId) {
             $order = CommercePlugin::getInstance()->getOrders()->getOrderById($orderId);
             if (!$order || !$order->isCompleted) {
                 continue;
             }
 
-            try {
-                if (!SendcloudPlugin::getInstance()->orderSync->pushOrder($order, true)) {
-                    continue;
-                }
-                
-                $success++;
-                
-            } catch (\Exception $e) {
-                SendcloudPlugin::error("Could not push orders to Sendcloud.", $e);
-                $errors++;
-            }
+            Queue::push(new PushOrder([
+                'orderId' => $orderId,
+                'force' => true
+            ]));
         }
         
-        if ($errors > 0) {
-            Craft::$app->getSession()->setError(Craft::t('commerce-sendcloud', "Could not push {count} orders to Sendcloud. Please check the error logs for more details.", ['count' => $errors]));
-        }
-        
-        Craft::$app->getSession()->setNotice(Craft::t('commerce-sendcloud', "{count} orders pushed to Sendcloud.", ['count' => $success]));
+        Craft::$app->getSession()->setNotice(Craft::t('commerce-sendcloud', "Trying to push {count} orders to Sendcloud.", ['count' => count($orderIds)]));
 
         return $this->redirectToPostedUrl();
     }
