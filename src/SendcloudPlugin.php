@@ -58,7 +58,7 @@ class SendcloudPlugin extends Plugin
     /**
      * @inheritdoc
      */
-    protected function createSettingsModel(): ?\craft\base\Model
+    protected function createSettingsModel(): Settings
     {
         return new Settings();
     }

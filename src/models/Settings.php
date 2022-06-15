@@ -18,7 +18,7 @@ class Settings extends Model
     /**
      * @var string
      */
-    public string $pluginNameOverride;
+    public string $pluginNameOverride = '';
 
     /**
      * @var array

@@ -226,10 +226,6 @@ class OrderSync extends Component
             'orderId' => $order->getId(),
             'createLabel' => $createLabel,
         ]));
-        
-        if (in_array($orderStatus->handle, $settings->orderStatusesToCreateLabel, true)) {
-            $this->createLabel($order);
-        }
     }
 
     /**
