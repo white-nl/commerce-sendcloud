@@ -1,5 +1,10 @@
 # Release Notes for Craft Sendcloud Plugin
 
+## 1.1.1 - 2022-06-17
+
+### Fixed
+- Fixed an error that occured when creating a shipping label with a queue job
+
 ## 1.1.0 - 2022-06-08
 
 ### Changed

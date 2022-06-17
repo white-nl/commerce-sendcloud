@@ -170,7 +170,7 @@ class OrderSync extends Component
                 if ($status && $status->servicePoint) {
                     foreach ($this->sendcloudApi->getClient()->getShippingMethods() as $method) {
                         // Find the matching sendcloud shipping
-                        if ($method->getName() == $order->shippingMethod->getName()) {
+                        if ($method->getName() == $order->shippingMethodName) {
                             $isSendcloudShipping = true;
                             if (!$method->getAllowsServicePoints()) {
                                 // remove the servicePoint info
@@ -327,7 +327,7 @@ class OrderSync extends Component
         }
 
         $client = $this->sendcloudApi->getClient();
-        if (!isset($client->getShippingMethods()[$order->shippingMethod->getName()])) {
+        if (!isset($client->getShippingMethods()[$order->shippingMethodName])) {
             SendcloudPlugin::log("Sendcloud shipping method not found", Logger::LEVEL_WARNING);
             return false;
         }

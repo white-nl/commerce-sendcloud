@@ -135,11 +135,11 @@ final class JouwWebSendcloudAdapter implements SendcloudInterface
     public function createLabel(Order $order, int $parcelId): Parcel
     {
         $shippingMethods = $this->getShippingMethods();
-        if (!array_key_exists($order->shippingMethod->getName(), $shippingMethods)) {
-            throw new \Exception("Could not find Sendcloud shipping method '{$order->shippingMethod->getName()}'.");
+        if (!array_key_exists($order->shippingMethodName, $shippingMethods)) {
+            throw new \Exception("Could not find Sendcloud shipping method '{$order->shippingMethodName}'.");
         }
         
-        $shippingMethodId = $shippingMethods[$order->shippingMethod->getName()]->getId();
+        $shippingMethodId = $shippingMethods[$order->shippingMethodName]->getId();
         
         $parcel = $this->client->getParcel($parcelId);
         $parcel = $this->client->createLabel($parcel, $shippingMethodId, null);
