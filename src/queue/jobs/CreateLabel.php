@@ -13,11 +13,7 @@ class CreateLabel extends BaseJob
     public function execute($queue): void
     {
         $order = Order::find()->id($this->orderId)->anyStatus()->one();
-        $labelCreated = SendcloudPlugin::getInstance()->orderSync->createLabel($order);
-
-        if (!$labelCreated) {
-            throw new \Exception('Failed to create Sendcloud label');
-        }
+        SendcloudPlugin::getInstance()->orderSync->createLabel($order);
     }
 
     protected function defaultDescription(): ?string

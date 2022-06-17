@@ -1,5 +1,10 @@
 # Release Notes for Craft Sendcloud Plugin
 
+## 1.1.2 - 2022-06-17
+
+### Fixed
+- Don't throw error on queue job failed
+
 ## 1.1.1 - 2022-06-17
 
 ### Fixed

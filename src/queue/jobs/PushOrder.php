@@ -18,11 +18,7 @@ class PushOrder extends BaseJob
     public function execute($queue): void
     {
         $order = Order::find()->id($this->orderId)->anyStatus()->one();
-        $orderedPushed = SendcloudPlugin::getInstance()->orderSync->pushOrder($order, $this->force);
-
-        if (!$orderedPushed) {
-            throw new \Exception('Failed to push order to Sendcloud');
-        }
+        SendcloudPlugin::getInstance()->orderSync->pushOrder($order, $this->force);
 
         if ($this->createLabel) {
             Queue::push(new CreateLabel([
