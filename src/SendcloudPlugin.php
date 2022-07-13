@@ -10,10 +10,13 @@ use craft\events\RegisterElementActionsEvent;
 use craft\events\RegisterUrlRulesEvent;
 use craft\events\RegisterUserPermissionsEvent;
 use craft\helpers\UrlHelper;
+use craft\log\MonologTarget;
 use craft\services\UserPermissions;
 use craft\web\twig\variables\CraftVariable;
 use craft\web\UrlManager;
 use JouwWeb\SendCloud\Exception\SendCloudRequestException;
+use Monolog\Formatter\LineFormatter;
+use Psr\Log\LogLevel;
 use white\commerce\sendcloud\elements\actions\BulkPrintSendcloudLabelsAction;
 use white\commerce\sendcloud\elements\actions\BulkPushToSendcloudAction;
 use white\commerce\sendcloud\models\Settings;
@@ -53,6 +56,7 @@ class SendcloudPlugin extends Plugin
         $this->registerEventListeners();
         $this->registerVariables();
         $this->registerPermissions();
+        $this->_registerLogTarget();
     }
 
     /**
@@ -217,7 +221,7 @@ class SendcloudPlugin extends Plugin
      */
     public static function log(string $message, int $logLevel = Logger::LEVEL_INFO): void
     {
-        Craft::getLogger()->log($message, $logLevel, self::LOG_CATEGORY);
+        Craft::getLogger()->log($message, $logLevel, 'commerce-sendcloud');
     }
 
     /**
@@ -236,6 +240,17 @@ class SendcloudPlugin extends Plugin
             $exception = $exception->getPrevious();
         }
         
-        Craft::getLogger()->log($message, Logger::LEVEL_ERROR, self::LOG_CATEGORY);
+        Craft::getLogger()->log($message, Logger::LEVEL_ERROR, 'commerce-sendcloud');
+    }
+
+    private function _registerLogTarget(): void
+    {
+        Craft::getLogger()->dispatcher->targets[] = new MonologTarget([
+            'name' => 'commerce-sendcloud',
+            'categories' => [self::LOG_CATEGORY],
+            'level' => LogLevel::INFO,
+            'logContext' => false,
+            'allowLineBreaks' => true,
+        ]);
     }
 }

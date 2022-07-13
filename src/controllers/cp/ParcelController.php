@@ -110,7 +110,7 @@ class ParcelController extends Controller
         try {
             $labels = $client->getLabelsPdf($parcelIds, Parcel::LABEL_FORMAT_A6);
         } catch (\Exception $e) {
-            SendcloudPlugin::error("Could not print Sendcloud labels.", $e);
+            SendcloudPlugin::getInstance()->error("Could not print Sendcloud labels.", $e);
             Craft::$app->getSession()->setError(Craft::t('commerce-sendcloud', "Could not get Sendcloud label. Please check the error logs for more details."));
 
             return $this->redirectToPostedUrl();
@@ -146,7 +146,7 @@ class ParcelController extends Controller
         try {
             $success = SendcloudPlugin::getInstance()->orderSync->pushOrder($order, true);
         } catch (\Exception $e) {
-            SendcloudPlugin::error("Could not push the order to Sendcloud.", $e);
+            SendcloudPlugin::getInstance()->error("Could not push the order to Sendcloud.", $e);
         }
         
         if ($success) {

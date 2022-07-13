@@ -1,5 +1,15 @@
 # Release Notes for Craft Sendcloud Plugin
 
+## 2.1.2 - 2022-07-13
+
+### Fixed
+- Fixed an error with setting up the integration if the CP runs on a separate domain
+
+## 2.1.1 - 2022-06-15
+
+### Fixed
+- Fixed an error that could occure when installing the plugin.
+
 ## 2.1.0 - 2022-06-08
 
 ### Changed

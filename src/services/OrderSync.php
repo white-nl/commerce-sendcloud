@@ -330,18 +330,18 @@ class OrderSync extends Component
     protected function validateOrder(Order $order): bool
     {
         if ($order->getShippingAddress() === null) {
-            SendcloudPlugin::log("Shipping address not found", Logger::LEVEL_WARNING);
+            SendcloudPlugin::getInstance()->log("Shipping address not found", Logger::LEVEL_WARNING);
             return false;
         }
 
         if ($order->getShippingMethod() === null) {
-            SendcloudPlugin::log("Order shipping method not found", Logger::LEVEL_WARNING);
+            SendcloudPlugin::getInstance()->log("Order shipping method not found", Logger::LEVEL_WARNING);
             return false;
         }
 
         $client = $this->sendcloudApi->getClient();
         if (!isset($client->getShippingMethods()[$order->getShippingMethod()->getName()])) {
-            SendcloudPlugin::log("Sendcloud shipping method not found", Logger::LEVEL_WARNING);
+            SendcloudPlugin::getInstance()->log("Sendcloud shipping method not found", Logger::LEVEL_WARNING);
             return false;
         }
         

@@ -98,7 +98,7 @@ class WebhookController extends Controller
                     $parcelData = $request->getBodyParam('parcel');
                     $timestamp = $request->getBodyParam('timestamp');
                     if (empty($parcelData) || !empty($parcelData['is_return'])) {
-                        SendcloudPlugin::log("Not a status change or is return: skipped");
+                        SendcloudPlugin::getInstance()->log("Not a status change or is return: skipped");
                         return;
                     }
                     $parcel = (new WebhookParcelNormalizer($parcelData))->getParcel();
@@ -112,16 +112,16 @@ class WebhookController extends Controller
                     try {
                         $status = SendcloudPlugin::getInstance()->orderSync->getOrderSyncStatusByParcelId($parcel->getId());
                         if (!$status) {
-                            SendcloudPlugin::log("Parcel #{$parcel->getId()} not found. Trying to find by order #{$parcel->getOrderNumber()}");
+                            SendcloudPlugin::getInstance()->log("Parcel #{$parcel->getId()} not found. Trying to find by order #{$parcel->getOrderNumber()}");
                             $status = SendcloudPlugin::getInstance()->orderSync->getOrderSyncStatusByOrderId((int)$parcel->getOrderNumber());
                             if (!$status) {
-                                SendcloudPlugin::log("Order status change skipped: parcel #{$parcel->getId()} not found.");
+                                SendcloudPlugin::getInstance()->log("Order status change skipped: parcel #{$parcel->getId()} not found.");
                                 return;
                             }
                         }
                         
                         if ($timestamp < $status->lastWebhookTimestamp) {
-                            SendcloudPlugin::log("Received late webhook for parcel #{$parcel->getId()}. Ignoring.");
+                            SendcloudPlugin::getInstance()->log("Received late webhook for parcel #{$parcel->getId()}. Ignoring.");
                             return;
                         }
 
@@ -145,7 +145,7 @@ class WebhookController extends Controller
                                         $order->orderStatusId = $orderStatus->id;
                                         $order->message = \Craft::t('commerce-sendcloud',"[Sendcloud] Status updated via webhook ({statusId}: {statusMessage})",['statusId' => $status->statusId, 'statusMessage' => $status->statusMessage]);
                                         if (!\Craft::$app->getElements()->saveElement($order)) {
-                                            SendcloudPlugin::error("Could not save Sendcloud order sync status.\n  " . VarDumper::dumpAsString($order->errors));
+                                            SendcloudPlugin::getInstance()->error("Could not save Sendcloud order sync status.\n  " . VarDumper::dumpAsString($order->errors));
                                         }
                                     }
                                 }
@@ -154,7 +154,7 @@ class WebhookController extends Controller
 
                         if ($status->statusId == OrderSyncStatus::STATUS_CANCELLED) {
                             SendcloudPlugin::getInstance()->orderSync->deleteOrderSyncStatusById($status->id);
-                            SendcloudPlugin::log("Order status for order#{$status->orderId} has been deleted because status #{$status->statusId} received from Sendcloud.");
+                            SendcloudPlugin::getInstance()->log("Order status for order#{$status->orderId} has been deleted because status #{$status->statusId} received from Sendcloud.");
                         }
                     } finally {
                         $mutex->release($lockName);
