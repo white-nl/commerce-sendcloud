@@ -15,7 +15,6 @@ use craft\services\UserPermissions;
 use craft\web\twig\variables\CraftVariable;
 use craft\web\UrlManager;
 use JouwWeb\SendCloud\Exception\SendCloudRequestException;
-use Monolog\Formatter\LineFormatter;
 use Psr\Log\LogLevel;
 use white\commerce\sendcloud\elements\actions\BulkPrintSendcloudLabelsAction;
 use white\commerce\sendcloud\elements\actions\BulkPushToSendcloudAction;

@@ -91,8 +91,8 @@ class SettingsController extends Controller
             'token' => $integration->token,
         ];
         $webhookUrl = $generalConfig->pathParam
-            ? UrlHelper::cpUrl('', array_merge([$generalConfig->pathParam => $webhookPath], $webhookArgs), null, $siteId)
-            : UrlHelper::cpUrl($webhookPath, $webhookArgs, null, $siteId);
+            ? UrlHelper::cpUrl('', array_merge([$generalConfig->pathParam => $webhookPath], $webhookArgs))
+            : UrlHelper::cpUrl($webhookPath, $webhookArgs);
         
         
         $url = $this->sendcloudConnectUrl;

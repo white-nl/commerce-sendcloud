@@ -7,7 +7,7 @@
         "php": "^8.0.2",
         "craftcms/cms": "^4.0.0",
         "craftcms/commerce": "^4.0.0",
-        "jouwweb/sendcloud": "3.10.1",
+        "jouwweb/sendcloud": "3.10.2",
         "ext-json": "*"
     },
     "autoload": {
