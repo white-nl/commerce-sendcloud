@@ -16,32 +16,60 @@ use yii\base\InvalidConfigException;
 class Settings extends Model
 {
     /**
-     * @var string
+     * @var string The plugin name as you'd like it to be displayed in the Control Panel.
      */
     public string $pluginNameOverride = '';
 
     /**
-     * @var array
+     * @var array Orders with these statuses will be pushed automatically to Sendcloud.
      */
     public array $orderStatusesToPush = [];
 
     /**
-     * @var array
+     * @var array Automatically create labels in Sendcloud for orders with these statuses.
      */
     public array $orderStatusesToCreateLabel = [];
 
     /**
-     * @var array
+     * @var array You can map specific Sendcloud parcel status to a craft order status. Order status will be updated automatically when the parcel status changes.
      */
     public array $orderStatusMapping = [];
-    
+
+    /**
+     * @var string|null Select the Craft Commerce product field containing the HS product codes. HS codes are required for shipping outside the EU.
+     */
     public ?string $hsCodeFieldHandle = null;
-    
+
+    /**
+     * @var string|null Select the Craft Commerce product field containing the country of Origin. Use only ISO2 country codes!
+     */
     public ?string $originCountryFieldHandle = null;
 
+    /**
+     * @var string|null Select the Craft field linked to the Address element containing the phone number
+     */
     public ?string $phoneNumberFieldHandle = null;
 
+    /**
+     * @var string A friendly order number will be generated when the order is pushed to Sendcloud. For example '{{ order.id }}', or '{{ order.reference }}'
+     *
+     * @since 2.2.0
+     */
     public string $orderNumberFormat = '{{ order.id }}';
+
+    /**
+     * @var int The priority to give the push order job (the lower the number, the higher the priority). Set to `null` to inherit the default priority.
+     *
+     * @since 2.2.0
+     */
+    public int $pushOrderJobPriority = 1024;
+
+    /**
+     * @var int The priority to give the create label job (the lower the number, the higher the priority). Set to `null` to inherit the default priority.
+     *
+     * @since 2.2.0
+     */
+    public int $createLabelJobPriority = 1024;
 
     /**
      * @inheritdoc
@@ -74,7 +102,7 @@ class Settings extends Model
         foreach ($orderStatuses as $orderStatus) {
             $options[] = ['label' => $orderStatus->name, 'value' => $orderStatus->handle];
         }
-        
+
         return $options;
     }
 
@@ -88,7 +116,7 @@ class Settings extends Model
         foreach (OrderSyncStatus::STATUSES as $value => $label) {
             $options[] = ['value' => $value, 'label' => sprintf('%d: %s', $value, $label)];
         }
-        
+
         return $options;
     }
 
@@ -103,7 +131,7 @@ class Settings extends Model
         foreach (Craft::$app->getFields()->getAllFields() as $field) {
             $options[] = ['label' => $field->name, 'value' => $field->handle];
         }
-        
+
         return $options;
     }
 

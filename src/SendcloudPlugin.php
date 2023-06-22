@@ -43,16 +43,26 @@ class SendcloudPlugin extends Plugin
 {
     public const LOG_CATEGORY = 'commerce-sendcloud';
 
+    public static function config(): array
+    {
+        return [
+            'components' => [
+                'integrations' => ['class' => Integrations::class],
+                'orderSync' => ['class' => OrderSync::class],
+                'sendcloudApi' => ['class' => SendcloudApi::class],
+            ],
+        ];
+    }
+
     public string $schemaVersion = '1.0.3';
 
     /**
      * @inheritdoc
      */
-    public function init()
+    public function init(): void
     {
         parent::init();
 
-        $this->registerServices();
         $this->registerNameOverride();
         $this->registerCpUrls();
         $this->registerSiteUrls();
@@ -91,18 +101,6 @@ class SendcloudPlugin extends Plugin
             ],
         ];
         return $item;
-    }
-
-    /**
-     * @return void
-     */
-    protected function registerServices(): void
-    {
-        $this->setComponents([
-            'integrations' => Integrations::class,
-            'orderSync' => OrderSync::class,
-            'sendcloudApi' => SendcloudApi::class,
-        ]);
     }
 
     /**
@@ -188,7 +186,7 @@ class SendcloudPlugin extends Plugin
             /** @var Order $order */
             $order = $context['order'];
             $status = $this->orderSync->getOrderSyncStatusByOrderId($order->getId());
-            
+
             return Craft::$app->getView()->renderTemplate('commerce-sendcloud/_order-details-panel', [
                 'plugin' => $this,
                 'order' => $order,
@@ -221,16 +219,16 @@ class SendcloudPlugin extends Plugin
             UserPermissions::EVENT_REGISTER_PERMISSIONS,
             function(RegisterUserPermissionsEvent $event): void {
                 $event->permissions[] = [
-                'heading' => Craft::t('commerce-sendcloud', 'Sendcloud'),
-                'permissions' => [
-                    'commerce-sendcloud-pushOrders' => [
-                        'label' => Craft::t('commerce-sendcloud', 'Manually push orders to Sendcloud'),
+                    'heading' => Craft::t('commerce-sendcloud', 'Sendcloud'),
+                    'permissions' => [
+                        'commerce-sendcloud-pushOrders' => [
+                            'label' => Craft::t('commerce-sendcloud', 'Manually push orders to Sendcloud'),
+                        ],
+                        'commerce-sendcloud-printLabels' => [
+                            'label' => Craft::t('commerce-sendcloud', 'Print labels'),
+                        ],
                     ],
-                    'commerce-sendcloud-printLabels' => [
-                        'label' => Craft::t('commerce-sendcloud', 'Print labels'),
-                    ],
-                ],
-            ];
+                ];
             });
     }
 
@@ -256,10 +254,10 @@ class SendcloudPlugin extends Plugin
             if ($exception instanceof SendCloudRequestException) {
                 $message .= "  " . $exception->getSendCloudMessage();
             }
-            
+
             $exception = $exception->getPrevious();
         }
-        
+
         Craft::getLogger()->log($message, Logger::LEVEL_ERROR, 'commerce-sendcloud');
     }
 

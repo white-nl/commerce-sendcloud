@@ -177,10 +177,13 @@ class ParcelController extends Controller
                 continue;
             }
 
-            Queue::push(new PushOrder([
-                'orderId' => $orderId,
+            $job = new PushOrder([
+                'orderId' => $order->getId(),
                 'force' => true,
-            ]));
+            ]);
+
+            $settings = SendcloudPlugin::getInstance()->getSettings();
+            Queue::push($job, $settings->pushOrderJobPriority);
         }
         
         Craft::$app->getSession()->setNotice(Craft::t('commerce-sendcloud', "Trying to push {count} orders to Sendcloud.", ['count' => count($orderIds)]));

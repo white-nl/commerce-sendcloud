@@ -222,10 +222,12 @@ class OrderSync extends Component
         
         $createLabel = in_array($orderStatus->handle, $settings->orderStatusesToCreateLabel, true);
 
-        Queue::push(new PushOrder([
+        $job = new PushOrder([
             'orderId' => $order->getId(),
             'createLabel' => $createLabel,
-        ]));
+        ]);
+
+        Queue::push($job, $settings->pushOrderJobPriority);
     }
 
     /**

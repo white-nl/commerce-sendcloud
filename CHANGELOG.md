@@ -1,9 +1,10 @@
 # Release Notes for Craft Sendcloud Plugin
 
-## 2.2.0 - UNRELEASED
+## 2.2.0 - 2023-06-22
 
 ### Added
 - Added an option to configure the Sendcloud order number ([#1](https://github.com/white-nl/commerce-sendcloud/issues/1))
+- Added a setting to set the queue jobs priority
 
 ## 2.1.3 - 2023-04-04
 

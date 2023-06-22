@@ -22,9 +22,12 @@ class PushOrder extends BaseJob
         SendcloudPlugin::getInstance()->orderSync->pushOrder($order, $this->force);
 
         if ($this->createLabel) {
-            Queue::push(new CreateLabel([
+            $job = new CreateLabel([
                 'orderId' => $this->orderId,
-            ]));
+            ]);
+
+            $settings = SendcloudPlugin::getInstance()->getSettings();
+            Queue::push($job, $settings->createLabelJobPriority);
         }
     }
 
