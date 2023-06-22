@@ -92,10 +92,11 @@ final class JouwWebSendcloudAdapter implements SendcloudInterface
             $items[] = $parcelItem;
         }
 
-        $orderNumberTemplate = SendcloudPlugin::getInstance()->getSettings()->orderReferenceFormat;
+        $orderNumberTemplate = SendcloudPlugin::getInstance()->getSettings()->orderNumberFormat;
 
         try {
-            $orderNumber = Craft::$app->getView()->renderObjectTemplate($orderNumberTemplate, $order);
+            $vars = array_merge(['order' => $order]);
+            $orderNumber = Craft::$app->getView()->renderString($orderNumberTemplate, $vars);
         } catch (Throwable $exception) {
             Craft::error('Unable to generate Sendcloud order reference for Order ID: ' . $order->getId() . ', with format: ' . $orderNumberTemplate . ', error: ' . $exception->getMessage());
             throw $exception;

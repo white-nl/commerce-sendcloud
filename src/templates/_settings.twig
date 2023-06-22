@@ -1,4 +1,5 @@
 {% extends "_layouts/cp" %}
+{% import "codeeditor/codeEditor" as codeEditor %}
 {% import "_includes/forms" as forms %}
 
 {% set fullPageForm = allowAdminChanges %}
@@ -16,6 +17,13 @@
     { label: 'Order Sync'|t('commerce-sendcloud'), url: '#settings-order-sync' },
     { label: 'Advanced'|t('commerce-sendcloud'), url: '#settings-advanced' },
 ] %}
+
+{% set monacoOptions = {
+} %}
+
+{% set codeEditorOptions = {
+    wrapperClass: "monaco-editor-background-frame",
+} %}
 
 {% block actionButton %}
     {% if allowAdminChanges %}
@@ -151,6 +159,20 @@
                         static: not allowAdminChanges,
                     }) }}
 
+                    {{ codeEditor.textField({
+                        label: "Order Number Number Format"|t('commerce-sendcloud'),
+                        instructions: "A friendly order number will be generated when the order is pushed to Sendcloud. For example {ex1}, or <br> {ex2}. The result of this format must be unique."|t('commerce-sendcloud', {
+                            ex1: "<code>{{ order.id }}</code>",
+                            ex2: "<code>{{ order.reference }}</code>",
+                        }),
+                        id: "orderNumberFormat",
+                        name: "orderNumberFormat",
+                        value: settings.orderNumberFormat,
+                        class: "code ltr",
+                        errors: settings.getErrors('orderNumberFormat'),
+                        required: true,
+                    }, 'SendcloudOrderNumber', monacoOptions, codeEditorOptions) }}
+
                     <h3>{{ "International shipping"|t('commerce-sendcloud') }}</h3>
 
                     {{ forms.selectField({
@@ -199,20 +221,6 @@
                         value: settings.pluginNameOverride,
                         errors: settings.getErrors('pluginNameOverride'),
                         disabled: not allowAdminChanges,
-                    }) }}
-
-                    {{ forms.textField({
-                        label: "Order Reference Number Format"|t('commerce-sendcloud'),
-                        instructions: "A friendly reference number will be generated when the order is pushed to Sendcloud. For example {ex1}, or <br> {ex2}. The result of this format must be unique."|t('commerce-sendcloud', {
-                            ex1: "<code>{{ id }}</code>",
-                            ex2: "<code>{{ reference }}</code>",
-                        }),
-                        id: "orderReferenceFormat",
-                        name: "orderReferenceFormat",
-                        value: settings.orderReferenceFormat,
-                        class: "code ltr",
-                        errors: settings.getErrors('orderReferenceFormat'),
-                        required: true,
                     }) }}
 
                 </div>

@@ -41,7 +41,7 @@ class Settings extends Model
 
     public ?string $phoneNumberFieldHandle = null;
 
-    public string $orderReferenceFormat = '{{ id }}';
+    public string $orderNumberFormat = '{{ order.id }}';
 
     /**
      * @inheritdoc
@@ -58,7 +58,7 @@ class Settings extends Model
             ['orderStatusesToPush', 'default', 'value' => []],
             ['orderStatusesToCreateLabel', 'default', 'value' => []],
             ['orderStatusMapping', 'default', 'value' => []],
-            ['orderReferenceFormat', 'required'],
+            ['orderNumberFormat', 'required'],
         ];
     }
 

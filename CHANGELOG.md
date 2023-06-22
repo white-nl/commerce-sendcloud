@@ -3,7 +3,7 @@
 ## 2.2.0 - UNRELEASED
 
 ### Added
-- Added an option to configure the order reference ([#1](https://github.com/white-nl/commerce-sendcloud/issues/1))
+- Added an option to configure the Sendcloud order number ([#1](https://github.com/white-nl/commerce-sendcloud/issues/1))
 
 ## 2.1.3 - 2023-04-04
 
