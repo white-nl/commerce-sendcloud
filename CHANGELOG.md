@@ -1,5 +1,10 @@
 # Release Notes for Craft Sendcloud Plugin
 
+## 2.2.1 - 2023-06-22
+
+### Fixed
+- Fixed a typo on the settings page
+
 ## 2.2.0 - 2023-06-22
 
 ### Added
