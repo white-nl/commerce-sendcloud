@@ -11,11 +11,13 @@ use craft\commerce\models\LineItem;
 use craft\commerce\Plugin as CommercePlugin;
 use craft\errors\InvalidFieldException;
 use craft\helpers\ArrayHelper;
+use GuzzleHttp\Exception\GuzzleException;
 use JouwWeb\SendCloud\Exception\SendCloudClientException;
 use JouwWeb\SendCloud\Exception\SendCloudRequestException;
 use JouwWeb\SendCloud\Model\Address;
 use JouwWeb\SendCloud\Model\ParcelItem;
 use JouwWeb\SendCloud\Model\ShippingMethod;
+use Throwable;
 use white\commerce\sendcloud\client\SendcloudClient as Client;
 use white\commerce\sendcloud\models\Parcel;
 use white\commerce\sendcloud\SendcloudPlugin;
@@ -51,7 +53,8 @@ final class JouwWebSendcloudAdapter implements SendcloudInterface
      * @param int|null $weight
      * @return Parcel
      * @throws SendCloudRequestException
-     * @throws \Exception
+     * @throws GuzzleException
+     * @throws Throwable
      */
     public function createParcel(Order $order, ?int $servicePointId = null, ?int $weight = null): Parcel
     {
@@ -88,11 +91,21 @@ final class JouwWebSendcloudAdapter implements SendcloudInterface
 
             $items[] = $parcelItem;
         }
+
+        $orderNumberTemplate = SendcloudPlugin::getInstance()->getSettings()->orderNumberFormat;
+
+        try {
+            $vars = array_merge(['order' => $order]);
+            $orderNumber = Craft::$app->getView()->renderString($orderNumberTemplate, $vars);
+        } catch (Throwable $exception) {
+            Craft::error('Unable to generate Sendcloud order reference for Order ID: ' . $order->getId() . ', with format: ' . $orderNumberTemplate . ', error: ' . $exception->getMessage());
+            throw $exception;
+        }
         
         $parcel = $this->client->createParcel(
             $address,
             $servicePointId,
-            (string)$order->getId(),
+            $orderNumber,
             $weight,
             $order->reference,
             \JouwWeb\SendCloud\Model\Parcel::CUSTOMS_SHIPMENT_TYPE_COMMERCIAL_GOODS,

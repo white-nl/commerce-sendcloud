@@ -15,6 +15,10 @@ use craft\services\UserPermissions;
 use craft\web\twig\variables\CraftVariable;
 use craft\web\UrlManager;
 use JouwWeb\SendCloud\Exception\SendCloudRequestException;
+use nystudio107\codeeditor\autocompletes\CraftApiAutocomplete;
+use nystudio107\codeeditor\autocompletes\TwigLanguageAutocomplete;
+use nystudio107\codeeditor\events\RegisterCodeEditorAutocompletesEvent;
+use nystudio107\codeeditor\services\AutocompleteService;
 use Psr\Log\LogLevel;
 use white\commerce\sendcloud\elements\actions\BulkPrintSendcloudLabelsAction;
 use white\commerce\sendcloud\elements\actions\BulkPushToSendcloudAction;
@@ -149,6 +153,23 @@ class SendcloudPlugin extends Plugin
     protected function registerEventListeners(): void
     {
         $this->orderSync->registerEventListeners();
+
+        Event::on(
+            AutocompleteService::class,
+            AutocompleteService::EVENT_REGISTER_CODEEDITOR_AUTOCOMPLETES,
+            function(RegisterCodeEditorAutocompletesEvent $event) {
+                if ($event->fieldType === 'SendcloudOrderNumber') {
+                    $config = [
+                        'elementRouteGlobals' => [
+                            'order' => new Order(),
+                        ],
+                    ];
+                    $event->types = [];
+                    $event->types[] = [CraftApiAutocomplete::class => $config];
+                    $event->types[] = TwigLanguageAutocomplete::class;
+                }
+            }
+        );
 
         Event::on(
             Order::class,

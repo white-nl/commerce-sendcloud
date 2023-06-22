@@ -5,10 +5,11 @@
     "license": "proprietary",
     "require": {
         "php": "^8.0.2",
+        "ext-json": "*",
         "craftcms/cms": "^4.0.0",
         "craftcms/commerce": "^4.0.0",
         "jouwweb/sendcloud": "3.10.2",
-        "ext-json": "*"
+        "nystudio107/craft-code-editor": "^1.0"
     },
     "autoload": {
         "psr-4": {
@@ -41,6 +42,8 @@
             "yiisoft/yii2-composer": true,
             "craftcms/plugin-installer": true
         },
+        "sort-packages": true,
+        "optimize-autoloader": true,
         "platform": {
             "php": "8.0.2"
         }

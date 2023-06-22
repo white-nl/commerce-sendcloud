@@ -1,4 +1,5 @@
 {% extends "_layouts/cp" %}
+{% import "codeeditor/codeEditor" as codeEditor %}
 {% import "_includes/forms" as forms %}
 
 {% set fullPageForm = allowAdminChanges %}
@@ -16,6 +17,13 @@
     { label: 'Order Sync'|t('commerce-sendcloud'), url: '#settings-order-sync' },
     { label: 'Advanced'|t('commerce-sendcloud'), url: '#settings-advanced' },
 ] %}
+
+{% set monacoOptions = {
+} %}
+
+{% set codeEditorOptions = {
+    wrapperClass: "monaco-editor-background-frame",
+} %}
 
 {% block actionButton %}
     {% if allowAdminChanges %}
@@ -40,45 +48,47 @@
     {{ redirectInput('commerce-sendcloud/settings') }}
 
     {% namespace 'settings' %}
-    <div id="fields">
-        <div>
-            <div id="general">
+        <div id="fields">
+            <div>
+                <div id="general">
 
-                {% set sites = [craft.app.sites.primarySite] %} {# TODO: Multisite #}
-                {% for site in sites %}
+                    {% set sites = [craft.app.sites.primarySite] %} {# TODO: Multisite #}
+                    {% for site in sites %}
 
-                    <div class="integration-status" data-site-id="{{ site.id }}">
-                        <div>
-                            {{ "Connection status:"|t('commerce-sendcloud') }}
-                            <output class="integration-status-output"></output>
-                            <span class="integration-loading">{{ "Loading..."|t('commerce-sendcloud') }}</span>
-                            <button type="button" class="btn btn icon add integration-register" style="display: none;">{{ "Register"|t('commerce-sendcloud') }}</button>
-                            <button type="button" class="btn btn icon delete integration-remove" style="display: none;">{{ "Remove"|t('commerce-sendcloud') }}</button>
-                            <span class="integration-register-help" style="display: none;">
-                                {{ "You need a valid Sendcloud account to connect."|t('commerce-sendcloud') }}
-                                {{ "No account yet?"|t('commerce-sendcloud') }}
-                                <a href="https://panel.sendcloud.sc/accounts/signup?r=500" target="_blank">
-                                    {{ "Create a Sendcloud account"|t('commerce-sendcloud') }}
-                                </a>
-                            </span>
+                        <div class="integration-status" data-site-id="{{ site.id }}">
+                            <div>
+                                {{ "Connection status:"|t('commerce-sendcloud') }}
+                                <output class="integration-status-output"></output>
+                                <span class="integration-loading">{{ "Loading..."|t('commerce-sendcloud') }}</span>
+                                <button type="button" class="btn btn icon add integration-register"
+                                        style="display: none;">{{ "Register"|t('commerce-sendcloud') }}</button>
+                                <button type="button" class="btn btn icon delete integration-remove"
+                                        style="display: none;">{{ "Remove"|t('commerce-sendcloud') }}</button>
+                                <span class="integration-register-help" style="display: none;">
+                                    {{ "You need a valid Sendcloud account to connect."|t('commerce-sendcloud') }}
+                                    {{ "No account yet?"|t('commerce-sendcloud') }}
+                                    <a href="https://panel.sendcloud.sc/accounts/signup?r=500" target="_blank">
+                                        {{ "Create a Sendcloud account"|t('commerce-sendcloud') }}
+                                    </a>
+                                </span>
+                            </div>
+                            <div>
+                                {{ "Service points:"|t('commerce-sendcloud') }}
+                                <output class="service-points-status"></output>
+                                <span class="integration-loading">{{ "Loading..."|t('commerce-sendcloud') }}</span>
+                            </div>
                         </div>
-                        <div>
-                            {{ "Service points:"|t('commerce-sendcloud') }}
-                            <output class="service-points-status"></output>
-                            <span class="integration-loading">{{ "Loading..."|t('commerce-sendcloud') }}</span>
-                        </div>
-                    </div>
-                    
-                {% endfor %}
-                
-                <h3>{{ "Shipping methods"|t('commerce-sendcloud') }}</h3>
-                <p>
-                    {{ "List of available Sendcloud shipping methods. Only methods for the countries enabled in Craft Commerce settings panel are displayed here."|t('commerce-sendcloud') }}
-                    {{ "To create a Craft Commerce method, click the plus-button or manually create a shipping method."|t('commerce-sendcloud') }}
-                    {{ "Make sure the name of the Craft shipping method exactly matches the name of the of the Sendcloud shipping method!"|t('commerce-sendcloud') }}
-                </p>
-                <table id="shippingMethods" class="fullwidth data">
-                    <thead>
+
+                    {% endfor %}
+
+                    <h3>{{ "Shipping methods"|t('commerce-sendcloud') }}</h3>
+                    <p>
+                        {{ "List of available Sendcloud shipping methods. Only methods for the countries enabled in Craft Commerce settings panel are displayed here."|t('commerce-sendcloud') }}
+                        {{ "To create a Craft Commerce method, click the plus-button or manually create a shipping method."|t('commerce-sendcloud') }}
+                        {{ "Make sure the name of the Craft shipping method exactly matches the name of the of the Sendcloud shipping method!"|t('commerce-sendcloud') }}
+                    </p>
+                    <table id="shippingMethods" class="fullwidth data">
+                        <thead>
                         <tr>
                             <th scope="col" class="select-cell">{{ "Name"|t('commerce-sendcloud') }}</th>
                             <th scope="col" class="select-cell">{{ "Carrier"|t('commerce-sendcloud') }}</th>
@@ -87,259 +97,277 @@
                             <th scope="col" class="select-cell">{{ "Service Points"|t('commerce-sendcloud') }}</th>
                             <th colspan="2"></th>
                         </tr>
-                    </thead>
-                    <tbody></tbody>
-                    <tfoot>
+                        </thead>
+                        <tbody></tbody>
+                        <tfoot>
                         <tr>
                             <th colspan="4">{{ "Loading..."|t('commerce-sendcloud') }}</th>
                         </tr>
-                    </tfoot>
-                </table>
-                
-                
-            </div>
-            <div id="order-sync" class="hidden">
-                {{ adminChangesWarning }}
+                        </tfoot>
+                    </table>
 
-                {{ forms.multiselectField({
-                    label:        "Push orders to Sendcloud"|t('commerce-sendcloud'),
-                    instructions: "Orders with these statuses will be pushed automatically to Sendcloud."|t('commerce-sendcloud'),
-                    id:           'orderStatusesToPush',
-                    name:         'orderStatusesToPush',
-                    options:      settings.getOrderStatuses(),
-                    values:       settings.orderStatusesToPush,
-                    errors:       settings.getErrors('orderStatusesToPush'),
-                    class: 'selectize fullwidth',
-                    disabled:     not allowAdminChanges,
-                }) }}
 
-                {{ forms.multiselectField({
-                    label:        "Create labels for orders"|t('commerce-sendcloud'),
-                    instructions: "Automatically create labels in Sendcloud for orders with these statuses."|t('commerce-sendcloud'),
-                    id:           'orderStatusesToCreateLabel',
-                    name:         'orderStatusesToCreateLabel',
-                    options:      settings.getOrderStatuses(),
-                    values:       settings.orderStatusesToCreateLabel,
-                    errors:       settings.getErrors('orderStatusesToCreateLabel'),
-                    class: 'selectize fullwidth',
-                    disabled:     not allowAdminChanges,
-                }) }}
+                </div>
+                <div id="order-sync" class="hidden">
+                    {{ adminChangesWarning }}
 
-                {{ forms.editableTableField({
-                    label: 'Automatic Craft order status updates'|t('commerce-sendcloud'),
-                    instructions: 'You can map specific Sendcloud parcel status to a craft order status. Order status will be updated automatically when the parcel status changes.'|t('commerce-sendcloud'),
-                    id: 'mapping',
-                    name: 'orderStatusMapping',
-                    cols: {
-                        sendcloud: {
-                            type: "select",
-                            options: settings.getSendCloudStatuses,
-                            heading: 'Sendcloud status'|t('commerce-sendcloud')
+                    {{ forms.multiselectField({
+                        label: "Push orders to Sendcloud"|t('commerce-sendcloud'),
+                        instructions: "Orders with these statuses will be pushed automatically to Sendcloud."|t('commerce-sendcloud'),
+                        id: "orderStatusesToPush",
+                        name: "orderStatusesToPush",
+                        options: settings.getOrderStatuses(),
+                        values: settings.orderStatusesToPush,
+                        errors: settings.getErrors('orderStatusesToPush'),
+                        class: "selectize fullwidth",
+                        disabled: not allowAdminChanges,
+                    }) }}
+
+                    {{ forms.multiselectField({
+                        label: "Create labels for orders"|t('commerce-sendcloud'),
+                        instructions: "Automatically create labels in Sendcloud for orders with these statuses."|t('commerce-sendcloud'),
+                        id: "orderStatusesToCreateLabel",
+                        name: "orderStatusesToCreateLabel",
+                        options: settings.getOrderStatuses(),
+                        values: settings.orderStatusesToCreateLabel,
+                        errors: settings.getErrors('orderStatusesToCreateLabel'),
+                        class: "selectize fullwidth",
+                        disabled: not allowAdminChanges,
+                    }) }}
+
+                    {{ forms.editableTableField({
+                        label: "Automatic Craft order status updates"|t('commerce-sendcloud'),
+                        instructions: "You can map specific Sendcloud parcel status to a craft order status. Order status will be updated automatically when the parcel status changes."|t('commerce-sendcloud'),
+                        id: "mapping",
+                        name: "orderStatusMapping",
+                        cols: {
+                            sendcloud: {
+                                type: "select",
+                                options: settings.getSendCloudStatuses,
+                                heading: "Sendcloud status"|t('commerce-sendcloud')
+                            },
+                            craft: {
+                                type: "select",
+                                options: settings.getOrderStatuses(),
+                                heading: "Craft order status"|t('commerce-sendcloud')
+                            },
                         },
-                        craft: {
-                            type: 'select',
-                            options: settings.getOrderStatuses(),
-                            heading: 'Craft order status'|t('commerce-sendcloud')
-                        },
-                    },
-                    rows: settings.orderStatusMapping,
-                    allowAdd: true,
-                    allowReorder: true,
-                    allowDelete: true,
-                    static:     not allowAdminChanges,
-                }) }}
-                
-                <h3>{{ "International shipping"|t('commerce-sendcloud') }}</h3>
+                        rows: settings.orderStatusMapping,
+                        allowAdd: true,
+                        allowReorder: true,
+                        allowDelete: true,
+                        static: not allowAdminChanges,
+                    }) }}
 
-                {{ forms.selectField({
-                    label:        "HS Code field mapping"|t('commerce-sendcloud'),
-                    instructions: "Select the Craft Commerce product field containing the HS product codes. HS codes are required for shipping outside the EU."|t('commerce-sendcloud'),
-                    id:           'hsCodeFieldHandle',
-                    name:         'hsCodeFieldHandle',
-                    options:      settings.getAvailableTextFields(),
-                    value:        settings.hsCodeFieldHandle,
-                    errors:       settings.getErrors('hsCodeFieldHandle'),
-                    disabled:     not allowAdminChanges,
-                }) }}
+                    {{ codeEditor.textField({
+                        label: "Order Number Number Format"|t('commerce-sendcloud'),
+                        instructions: "A friendly order number will be generated when the order is pushed to Sendcloud. For example {ex1}, or <br> {ex2}. The result of this format must be unique."|t('commerce-sendcloud', {
+                            ex1: "<code>{{ order.id }}</code>",
+                            ex2: "<code>{{ order.reference }}</code>",
+                        }),
+                        id: "orderNumberFormat",
+                        name: "orderNumberFormat",
+                        value: settings.orderNumberFormat,
+                        class: "code ltr",
+                        errors: settings.getErrors('orderNumberFormat'),
+                        required: true,
+                    }, 'SendcloudOrderNumber', monacoOptions, codeEditorOptions) }}
 
-                {{ forms.selectField({
-                    label:        "Country of Origin field mapping"|t('commerce-sendcloud'),
-                    instructions: "Select the Craft Commerce product field containing the country of Origin. Use only ISO2 country codes!"|t('commerce-sendcloud'),
-                    id:           'originCountryFieldHandle',
-                    name:         'originCountryFieldHandle',
-                    options:      settings.getAvailableTextFields(),
-                    value:        settings.originCountryFieldHandle,
-                    errors:       settings.getErrors('originCountryFieldHandle'),
-                    disabled:     not allowAdminChanges,
-                }) }}
+                    <h3>{{ "International shipping"|t('commerce-sendcloud') }}</h3>
 
-                <h3>{{ "Address fields"|t('commerce-sendcloud') }}</h3>
+                    {{ forms.selectField({
+                        label: "HS Code field mapping"|t('commerce-sendcloud'),
+                        instructions: "Select the Craft Commerce product field containing the HS product codes. HS codes are required for shipping outside the EU."|t('commerce-sendcloud'),
+                        id: "hsCodeFieldHandle",
+                        name: "hsCodeFieldHandle",
+                        options: settings.getAvailableTextFields(),
+                        value: settings.hsCodeFieldHandle,
+                        errors: settings.getErrors('hsCodeFieldHandle'),
+                        disabled: not allowAdminChanges,
+                    }) }}
 
-                {{ forms.selectField({
-                    label:        "Phone number field"|t('commerce-sendcloud'),
-                    instructions: "Select the Craft field linked to the Address element containing the phone number"|t('commerce-sendcloud'),
-                    id:           'phoneNumberFieldHandle',
-                    name:         'phoneNumberFieldHandle',
-                    options:      settings.getAvailableTextFields(),
-                    value:        settings.phoneNumberFieldHandle,
-                    errors:       settings.getErrors('phoneNumberFieldHandle'),
-                    disabled:     not allowAdminChanges,
-                }) }}
-            </div>
-            <div id="advanced" class="hidden">
-                {{ adminChangesWarning }}
-                
-                {{ forms.textField({
-                    label:        "Plugin name"|t('commerce-sendcloud'),
-                    instructions: "The plugin name as you'd like it to be displayed in the Control Panel."|t('commerce-sendcloud'),
-                    id:           'pluginNameOverride',
-                    name:         'pluginNameOverride',
-                    value:        settings.pluginNameOverride,
-                    errors:       settings.getErrors('pluginNameOverride'),
-                    disabled:     not allowAdminChanges,
-                }) }}
-                
+                    {{ forms.selectField({
+                        label: "Country of Origin field mapping"|t('commerce-sendcloud'),
+                        instructions: "Select the Craft Commerce product field containing the country of Origin. Use only ISO2 country codes!"|t('commerce-sendcloud'),
+                        id: "originCountryFieldHandle",
+                        name: "originCountryFieldHandle",
+                        options: settings.getAvailableTextFields(),
+                        value: settings.originCountryFieldHandle,
+                        errors: settings.getErrors('originCountryFieldHandle'),
+                        disabled: not allowAdminChanges,
+                    }) }}
+
+                    <h3>{{ "Address fields"|t('commerce-sendcloud') }}</h3>
+
+                    {{ forms.selectField({
+                        label: "Phone number field"|t('commerce-sendcloud'),
+                        instructions: "Select the Craft field linked to the Address element containing the phone number"|t('commerce-sendcloud'),
+                        id: "phoneNumberFieldHandle",
+                        name: "phoneNumberFieldHandle",
+                        options: settings.getAvailableTextFields(),
+                        value: settings.phoneNumberFieldHandle,
+                        errors: settings.getErrors('phoneNumberFieldHandle'),
+                        disabled: not allowAdminChanges,
+                    }) }}
+                </div>
+                <div id="advanced" class="hidden">
+                    {{ adminChangesWarning }}
+
+                    {{ forms.textField({
+                        label: "Plugin name"|t('commerce-sendcloud'),
+                        instructions: "The plugin name as you'd like it to be displayed in the Control Panel."|t('commerce-sendcloud'),
+                        id: "pluginNameOverride",
+                        name: "pluginNameOverride",
+                        value: settings.pluginNameOverride,
+                        errors: settings.getErrors('pluginNameOverride'),
+                        disabled: not allowAdminChanges,
+                    }) }}
+
+                </div>
             </div>
         </div>
-    </div>
     {% endnamespace %}
 
 
-    {% if false %}<script>{% endif %}
-    {% js %}
-    
-    $('#settings-orderStatusesToPush, #settings-orderStatusesToCreateLabel').selectize({
-        plugins: ['remove_button'],
-        dropdownParent: 'body'
-    });
+    {% if false %}
+    <script>{% endif %}
+        {% js %}
 
-    $('.integration-status').each(function() {
-        var siteId = $(this).data('site-id');
-        var statusOutput = $(this).find('.integration-status-output');
-        var servicePointOutput = $(this).find('.service-points-status');
-        var loadingLabel = $(this).find('.integration-loading');
-        var registerButton = $(this).find('.integration-register');
-        var registerHelp = $(this).find('.integration-register-help');
-        var removeButton = $(this).find('.integration-remove');
-        var shippingMethodsTable = $('#settings-shippingMethods tbody');
-        var shippingMethodsLoader = $('#settings-shippingMethods tfoot');
-        
-        var updateShippingMethodTable = function(data) {
-            shippingMethodsTable.empty();
-            
-            for (var i in data.shippingMethods) {
+        $('#settings-orderStatusesToPush, #settings-orderStatusesToCreateLabel').selectize({
+            plugins: ['remove_button'],
+            dropdownParent: 'body'
+        });
 
-                shippingMethodsTable.append(
-                    $('<tr>')
-                        .append($('<td>').append(data.shippingMethods[i].craftId
-                            ? $('<a>').attr('href', "{{ cpUrl('commerce/shipping/shippingmethods') }}/" + data.shippingMethods[i].craftId).attr('target', '_blank').text(data.shippingMethods[i].name)
-                            : $('<span>').text(data.shippingMethods[i].name)))
-                        .append($('<td>').text(data.shippingMethods[i].carrier))
-                        .append($('<td>').text(parseInt(data.shippingMethods[i].minimumWeight) / 1000))
-                        .append($('<td>').text(parseInt(data.shippingMethods[i].maximumWeight) / 1000))
-                        .append($('<td>').html(data.shippingMethods[i].allowsServicePoints ? '&check;' : ''))
-                        .append($('<td>').append(data.shippingMethods[i].craftId ? '&check;' : $('<a>').attr('href', '#').attr('class', 'create-shipping-method add icon').data(data.shippingMethods[i]).attr('title', '{{ "Create"|t('commerce-sendcloud') }}')))
+        $('.integration-status').each(function () {
+            var siteId = $(this).data('site-id');
+            var statusOutput = $(this).find('.integration-status-output');
+            var servicePointOutput = $(this).find('.service-points-status');
+            var loadingLabel = $(this).find('.integration-loading');
+            var registerButton = $(this).find('.integration-register');
+            var registerHelp = $(this).find('.integration-register-help');
+            var removeButton = $(this).find('.integration-remove');
+            var shippingMethodsTable = $('#settings-shippingMethods tbody');
+            var shippingMethodsLoader = $('#settings-shippingMethods tfoot');
+
+            var updateShippingMethodTable = function (data) {
+                shippingMethodsTable.empty();
+
+                for (var i in data.shippingMethods) {
+
+                    shippingMethodsTable.append(
+                        $('<tr>')
+                            .append($('<td>').append(data.shippingMethods[i].craftId
+                                ? $('<a>').attr('href', "{{ cpUrl('commerce/shipping/shippingmethods') }}/" + data.shippingMethods[i].craftId).attr('target', '_blank').text(data.shippingMethods[i].name)
+                                : $('<span>').text(data.shippingMethods[i].name)))
+                            .append($('<td>').text(data.shippingMethods[i].carrier))
+                            .append($('<td>').text(parseInt(data.shippingMethods[i].minimumWeight) / 1000))
+                            .append($('<td>').text(parseInt(data.shippingMethods[i].maximumWeight) / 1000))
+                            .append($('<td>').html(data.shippingMethods[i].allowsServicePoints ? '&check;' : ''))
+                            .append($('<td>').append(data.shippingMethods[i].craftId ? '&check;' : $('<a>').attr('href', '#').attr('class', 'create-shipping-method add icon').data(data.shippingMethods[i]).attr('title', '{{ "Create"|t('commerce-sendcloud') }}')))
+                    );
+                }
+            };
+
+            var updateStatus = function (data) {
+                statusOutput.html(
+                    '<span class="status ' + (data.status === 'active' ? 'live' : (data.status === 'pending' ? 'pending' : 'off')) + '"></span>' +
+                    data.statusText
                 );
-            }
-        };
+                servicePointOutput.html(
+                    data.status !== 'active'
+                        ? '<span class="status pending"></span{{ "Unknown"|t('commerce-sendcloud') }}>'
+                        : (
+                            data.integration.servicePointEnabled
+                                ? '<span class="status live"></span>{{ "Enabled"|t('commerce-sendcloud') }}'
+                                : '<span class="status off"></span>{{ "Disabled"|t('commerce-sendcloud') }}'
+                        )
+                );
+                loadingLabel.hide();
+                shippingMethodsLoader.show();
+                if (data.status !== 'none') {
+                    registerButton.hide();
+                    registerHelp.hide();
+                    removeButton.show();
 
-        var updateStatus = function(data) {
-            statusOutput.html(
-                '<span class="status ' + (data.status === 'active' ? 'live' : (data.status === 'pending' ? 'pending' : 'off')) + '"></span>' +
-                data.statusText
-            );
-            servicePointOutput.html(
-                data.status !== 'active'
-                    ? '<span class="status pending"></span{{ "Unknown"|t('commerce-sendcloud') }}>'
-                    : (
-                        data.integration.servicePointEnabled
-                            ? '<span class="status live"></span>{{ "Enabled"|t('commerce-sendcloud') }}'
-                            : '<span class="status off"></span>{{ "Disabled"|t('commerce-sendcloud') }}'
-                    )
-            );
-            loadingLabel.hide();
-            shippingMethodsLoader.show();
-            if (data.status !== 'none') {
-                registerButton.hide();
-                registerHelp.hide();
-                removeButton.show();
+                    $.ajax('{{ actionUrl('commerce-sendcloud/cp/settings/get-shipping-methods') }}', {data: {siteId: siteId}})
+                        .done(function (data) {
+                            shippingMethodsLoader.hide();
+                            updateShippingMethodTable(data);
+                        });
+                } else {
+                    registerButton.show();
+                    registerHelp.show();
+                    removeButton.hide();
+                }
+            };
 
-                $.ajax('{{ actionUrl('commerce-sendcloud/cp/settings/get-shipping-methods') }}', { data: {siteId: siteId}})
-                    .done(function(data) {
-                        shippingMethodsLoader.hide();
-                        updateShippingMethodTable(data);
-                    });
-            } else {
-                registerButton.show();
-                registerHelp.show();
-                removeButton.hide();
-            }
-        };
+            shippingMethodsLoader.hide();
 
-        shippingMethodsLoader.hide();
-        
-        $.ajax('{{ actionUrl('commerce-sendcloud/cp/settings/get-integration-status') }}', { data: {siteId: siteId}})
-            .done(function(data) {
-                updateStatus(data);
+            $.ajax('{{ actionUrl('commerce-sendcloud/cp/settings/get-integration-status') }}', {data: {siteId: siteId}})
+                .done(function (data) {
+                    updateStatus(data);
+                });
+
+            registerButton.on('click', function (e) {
+                e.preventDefault();
+
+                $('<form/>')
+                    .attr('method', 'post')
+                    .attr('target', '_blank')
+                    .append($('<input/>').attr('type', 'hidden').attr('name', Craft.csrfTokenName).attr('value', Craft.csrfTokenValue))
+                    .append($('<input/>').attr('type', 'hidden').attr('name', 'action').attr('value', 'commerce-sendcloud/cp/settings/connect'))
+                    .append($('<input/>').attr('type', 'hidden').attr('name', 'siteId').attr('value', siteId))
+                    .appendTo(document.body)
+                    .submit();
             });
 
-        registerButton.on('click', function(e) {
-            e.preventDefault();
+            removeButton.on('click', function (e) {
+                e.preventDefault();
 
-            $('<form/>')
-                .attr('method', 'post')
-                .attr('target', '_blank')
-                .append($('<input/>').attr('type', 'hidden').attr('name', Craft.csrfTokenName).attr('value', Craft.csrfTokenValue))
-                .append($('<input/>').attr('type', 'hidden').attr('name', 'action').attr('value', 'commerce-sendcloud/cp/settings/connect'))
-                .append($('<input/>').attr('type', 'hidden').attr('name', 'siteId').attr('value', siteId))
-            .appendTo(document.body)
-            .submit();
-        });
+                $('<form/>')
+                    .attr('method', 'post')
+                    .append($('<input/>').attr('type', 'hidden').attr('name', Craft.csrfTokenName).attr('value', Craft.csrfTokenValue))
+                    .append($('<input/>').attr('type', 'hidden').attr('name', 'action').attr('value', 'commerce-sendcloud/cp/settings/disconnect'))
+                    .append($('<input/>').attr('type', 'hidden').attr('name', 'siteId').attr('value', siteId))
+                    .appendTo(document.body)
+                    .submit();
+            });
 
-        removeButton.on('click', function(e) {
-            e.preventDefault();
+            shippingMethodsTable.on('click', '.create-shipping-method', function (e) {
+                e.preventDefault();
+                var shippingMethod = $(this).data();
+                var gen = new Craft.HandleGenerator('', '');
 
-            $('<form/>')
-                .attr('method', 'post')
-                .append($('<input/>').attr('type', 'hidden').attr('name', Craft.csrfTokenName).attr('value', Craft.csrfTokenValue))
-                .append($('<input/>').attr('type', 'hidden').attr('name', 'action').attr('value', 'commerce-sendcloud/cp/settings/disconnect'))
-                .append($('<input/>').attr('type', 'hidden').attr('name', 'siteId').attr('value', siteId))
-            .appendTo(document.body)
-            .submit();
+                $('<form/>')
+                    .attr('method', 'post')
+                    .attr('target', '_blank')
+                    .append($('<input/>').attr('type', 'hidden').attr('name', Craft.csrfTokenName).attr('value', Craft.csrfTokenValue))
+                    .append($('<input/>').attr('type', 'hidden').attr('name', 'action').attr('value', 'commerce/shipping-methods/save'))
+                    .append($('<input/>').attr('type', 'hidden').attr('name', 'redirect').attr('value', '{{ 'commerce/shipping/shippingmethods/{id}#rules'|hash }}'))
+                    .append($('<input/>').attr('type', 'hidden').attr('name', 'name').attr('value', shippingMethod.name))
+                    .append($('<input/>').attr('type', 'hidden').attr('name', 'handle').attr('value', gen.generateTargetValue(shippingMethod.name)))
+                    .appendTo(document.body)
+                    .submit();
+
+            });
         });
-        
-        shippingMethodsTable.on('click', '.create-shipping-method', function(e) {
-            e.preventDefault();
-            var shippingMethod = $(this).data();
-            var gen = new Craft.HandleGenerator('', '');
-            
-            $('<form/>')
-                .attr('method', 'post')
-                .attr('target', '_blank')
-                .append($('<input/>').attr('type', 'hidden').attr('name', Craft.csrfTokenName).attr('value', Craft.csrfTokenValue))
-                .append($('<input/>').attr('type', 'hidden').attr('name', 'action').attr('value', 'commerce/shipping-methods/save'))
-                .append($('<input/>').attr('type', 'hidden').attr('name', 'redirect').attr('value', '{{ 'commerce/shipping/shippingmethods/{id}#rules'|hash }}'))
-                .append($('<input/>').attr('type', 'hidden').attr('name', 'name').attr('value', shippingMethod.name))
-                .append($('<input/>').attr('type', 'hidden').attr('name', 'handle').attr('value', gen.generateTargetValue(shippingMethod.name)))
-            .appendTo(document.body)
-            .submit();
-            
-        });
-    });
-    {% endjs %}
-    {% if false %}</script>{% endif %}
+        {% endjs %}
+        {% if false %}</script>{% endif %}
 
     {# Craft "special" styling fix for selectize. #}
-    {% if false %}<style>{% endif %}
-    {% css %}
+    {% if false %}
+    <style>{% endif %}
+        {% css %}
         body .selectize-dropdown-content > div[data-value="new"]:before {
             content: '';
             margin-right: 0;
         }
+
         body .selectize-dropdown-content > div[data-value="new"]:after {
             content: '';
         }
-    {% endcss %}
-    {% if false %}</style>{% endif %}
+
+        {% endcss %}
+        {% if false %}</style>{% endif %}
 
 {% endblock content %}

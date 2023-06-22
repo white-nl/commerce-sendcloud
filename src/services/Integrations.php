@@ -6,6 +6,7 @@ use craft\base\Component;
 use white\commerce\sendcloud\models\Integration;
 use white\commerce\sendcloud\records\Integration as IntegrationRecord;
 use yii\base\InvalidArgumentException;
+use yii\db\BaseActiveRecord;
 use yii\db\StaleObjectException;
 
 /**
@@ -42,6 +43,7 @@ class Integrations extends Component
     public function getAllIntegrations(): array
     {
         $result = [];
+        /** @var BaseActiveRecord $record */
         foreach (IntegrationRecord::find()->all() as $record) {
             $result[] = new Integration($record->toArray());
         }
