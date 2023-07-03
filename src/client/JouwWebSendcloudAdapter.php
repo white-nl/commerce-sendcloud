@@ -2,6 +2,7 @@
 
 namespace white\commerce\sendcloud\client;
 
+use CommerceGuys\Addressing\Country\CountryRepository;
 use Craft;
 use craft\base\Element;
 use craft\commerce\base\PurchasableInterface;
@@ -238,12 +239,21 @@ final class JouwWebSendcloudAdapter implements SendcloudInterface
         if ($settings->phoneNumberFieldHandle) {
             $phoneNumber = $shippingAddress->getFieldValue($settings->phoneNumberFieldHandle);
         }
+
+        $locality = $shippingAddress->getLocality();
+        if ($locality === null) {
+            $countryCode = $shippingAddress->getCountryCode();
+            $countryRepository = new CountryRepository();
+            $country = $countryRepository->get($countryCode);
+            $locality = $country->getName();
+        }
+
         return new Address(
             $shippingAddress->fullName ?: $shippingAddress->getGivenName() . ' ' . $shippingAddress->getFamilyName(),
             $shippingAddress->getOrganization(),
             $shippingAddress->getAddressLine1(),
             trim($shippingAddress->getAddressLine2()),
-            $shippingAddress->getLocality(),
+            $locality,
             $shippingAddress->getPostalCode(),
             $shippingAddress->getCountryCode(),
             $order->getEmail(),

@@ -1,5 +1,10 @@
 # Release Notes for Craft Sendcloud Plugin
 
+## Unreleased
+
+### Changed
+- The country is now getting send as city if the Craft address doesn't have a locality ([#15](https://github.com/white-nl/commerce-sendcloud/issues/15))
+
 ## 2.2.1 - 2023-06-22
 
 ### Fixed
