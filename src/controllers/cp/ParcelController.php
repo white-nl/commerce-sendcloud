@@ -10,7 +10,7 @@ use craft\errors\SiteNotFoundException;
 use craft\helpers\Queue;
 use craft\web\Controller;
 use craft\web\Response;
-use JouwWeb\SendCloud\Exception\SendCloudRequestException;
+use JouwWeb\Sendcloud\Exception\SendcloudRequestException;
 use white\commerce\sendcloud\models\Parcel;
 use white\commerce\sendcloud\queue\jobs\PushOrder;
 use white\commerce\sendcloud\SendcloudPlugin;
@@ -23,11 +23,6 @@ use yii\web\RangeNotSatisfiableHttpException;
 
 class ParcelController extends Controller
 {
-    public function init(): void
-    {
-        parent::init();
-    }
-
     /**
      * @return Response|void|\yii\console\Response|\yii\web\Response
      * @throws NotFoundHttpException
@@ -63,7 +58,7 @@ class ParcelController extends Controller
             SendcloudPlugin::error("Could not print a Sendcloud label.", $e);
             Craft::$app->getSession()->setError(Craft::t('commerce-sendcloud', "Could not get Sendcloud label. Please check the error logs for more details."));
 
-            $status->lastError = $e instanceof SendCloudRequestException ? $e->getSendCloudMessage() : $e->getMessage();
+            $status->lastError = $e instanceof SendcloudRequestException ? $e->getSendcloudMessage() : $e->getMessage();
             SendcloudPlugin::getInstance()->orderSync->saveOrderSyncStatus($status);
             
             return $this->redirectToPostedUrl();

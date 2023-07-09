@@ -11,7 +11,7 @@ use craft\errors\SiteNotFoundException;
 use craft\events\ModelEvent;
 use craft\helpers\Queue;
 use Exception;
-use JouwWeb\SendCloud\Exception\SendCloudRequestException;
+use JouwWeb\Sendcloud\Exception\SendcloudRequestException;
 use white\commerce\sendcloud\models\OrderSyncStatus;
 use white\commerce\sendcloud\queue\jobs\PushOrder;
 use white\commerce\sendcloud\records\OrderSyncStatus as OrderSyncStatusRecord;
@@ -257,9 +257,9 @@ class OrderSync extends Component
             if ($status->isPushed()) {
                 try {
                     $parcel = $client->updateParcel($status->parcelId, $order);
-                } catch (SendCloudRequestException $sendCloudRequestException) {
-                    if ($sendCloudRequestException->getSendCloudCode() != 404) {
-                        throw $sendCloudRequestException;
+                } catch (SendcloudRequestException $sendcloudRequestException) {
+                    if ($sendcloudRequestException->getSendCloudCode() != 404) {
+                        throw $sendcloudRequestException;
                     }
                 }
             }

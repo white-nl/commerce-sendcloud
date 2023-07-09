@@ -8,7 +8,7 @@
         "ext-json": "*",
         "craftcms/cms": "^4.0.0",
         "craftcms/commerce": "^4.0.0",
-        "jouwweb/sendcloud": "3.10.2",
+        "jouwweb/sendcloud": "5.0.1",
         "nystudio107/craft-code-editor": "^1.0"
     },
     "autoload": {

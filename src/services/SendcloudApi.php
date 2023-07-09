@@ -7,6 +7,7 @@ use craft\base\Component;
 use craft\errors\SiteNotFoundException;
 use white\commerce\sendcloud\client\JouwWebFactory;
 use white\commerce\sendcloud\client\SendcloudInterface;
+use white\commerce\sendcloud\models\Integration;
 use white\commerce\sendcloud\SendcloudPlugin;
 
 class SendcloudApi extends Component
@@ -36,7 +37,7 @@ class SendcloudApi extends Component
         
         if (!array_key_exists($siteId, $this->clientsBySiteId)) {
             $integration = $this->integrations->getIntegrationBySiteId($siteId);
-            if (!$integration instanceof \white\commerce\sendcloud\models\Integration) {
+            if (!$integration instanceof Integration) {
                 throw new \RuntimeException(sprintf('Integration not found for site #%s.', $siteId));
             }
 

@@ -4,8 +4,19 @@ namespace white\commerce\sendcloud\models;
 
 final class Address implements \Stringable
 {
-    public function __construct(private string $name, private ?string $companyName, private string $street, private string $houseNumber, private string $city, private string $postalCode, private string $countryCode, private string $emailAddress, private ?string $phoneNumber)
-    {
+    public function __construct(
+        private string $name,
+        private ?string $companyName,
+        private string $street,
+        private string $city,
+        private string $postalCode,
+        private string $countryCode,
+        private string $emailAddress,
+        private ?string $houseNumber = null,
+        private ?string $phoneNumber = null,
+        private ?string $addressLine2 = null,
+        private ?string $countryStateCode = null,
+    ) {
     }
 
     /**
@@ -60,18 +71,18 @@ final class Address implements \Stringable
     }
 
     /**
-     * @return string
+     * @return null|string
      */
-    public function getHouseNumber(): string
+    public function getHouseNumber(): ?string
     {
         return $this->houseNumber;
     }
 
     /**
-     * @param string $houseNumber
+     * @param ?string $houseNumber
      * @return void
      */
-    public function setHouseNumber(string $houseNumber): void
+    public function setHouseNumber(?string $houseNumber = null): void
     {
         $this->houseNumber = $houseNumber;
     }
@@ -153,12 +164,46 @@ final class Address implements \Stringable
     }
 
     /**
-     * @param string|null $phoneNumber
+     * @param null|string $phoneNumber
      * @return void
      */
-    public function setPhoneNumber(?string $phoneNumber): void
+    public function setPhoneNumber(?string $phoneNumber = null): void
     {
         $this->phoneNumber = $phoneNumber;
+    }
+
+    /**
+     * @retrun null|string
+     */
+    public function getAddressLine2(): ?string
+    {
+        return $this->addressLine2;
+    }
+
+    /**
+     * @param null|string $addressLine2
+     * @Return void
+     */
+    public function setAddressLine2(?string $addressLine2 = null): void
+    {
+        $this->addressLine2 = $addressLine2;
+    }
+
+    /**
+     * @return null|string
+     */
+    public function getCountryStateCode(): ?string
+    {
+        return $this->countryStateCode;
+    }
+
+    /**
+     * @param null|string $countryStateCode
+     * @return void
+     */
+    public function setCountryStateCode(?string $countryStateCode): void
+    {
+        $this->countryStateCode = $countryStateCode;
     }
 
     /**
@@ -191,6 +236,8 @@ final class Address implements \Stringable
             'phoneNumber' => $this->getPhoneNumber(),
             'postalCode' => $this->getPostalCode(),
             'street' => $this->getStreet(),
+            'addressLine2' => $this->getAddressLine2(),
+            'countryStateCode' => $this->getCountryStateCode(),
         ];
     }
 

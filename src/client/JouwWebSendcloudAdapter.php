@@ -13,11 +13,11 @@ use craft\commerce\Plugin as CommercePlugin;
 use craft\errors\InvalidFieldException;
 use craft\helpers\ArrayHelper;
 use GuzzleHttp\Exception\GuzzleException;
-use JouwWeb\SendCloud\Exception\SendCloudClientException;
-use JouwWeb\SendCloud\Exception\SendCloudRequestException;
-use JouwWeb\SendCloud\Model\Address;
-use JouwWeb\SendCloud\Model\ParcelItem;
-use JouwWeb\SendCloud\Model\ShippingMethod;
+use JouwWeb\Sendcloud\Exception\SendcloudClientException;
+use JouwWeb\Sendcloud\Exception\SendcloudRequestException;
+use JouwWeb\Sendcloud\Model\Address;
+use JouwWeb\Sendcloud\Model\ParcelItem;
+use JouwWeb\Sendcloud\Model\ShippingMethod;
 use Throwable;
 use white\commerce\sendcloud\client\SendcloudClient as Client;
 use white\commerce\sendcloud\models\Parcel;
@@ -29,7 +29,7 @@ final class JouwWebSendcloudAdapter implements SendcloudInterface
     private ?array $sendcloudShippingMethods = null;
 
     /**
-     * JouwWebSendCloudAdapter constructor.
+     * JouwWebSendcloudAdapter constructor.
      * @param Client $client
      */
     public function __construct(private Client $client)
@@ -39,7 +39,7 @@ final class JouwWebSendcloudAdapter implements SendcloudInterface
     /**
      * @param int $parcelId
      * @return Parcel
-     * @throws SendCloudClientException
+     * @throws SendcloudClientException
      */
     public function getParcel(int $parcelId): Parcel
     {
@@ -53,12 +53,13 @@ final class JouwWebSendcloudAdapter implements SendcloudInterface
      * @param int|null $servicePointId
      * @param int|null $weight
      * @return Parcel
-     * @throws SendCloudRequestException
+     * @throws SendcloudRequestException
      * @throws GuzzleException
      * @throws Throwable
      */
     public function createParcel(Order $order, ?int $servicePointId = null, ?int $weight = null): Parcel
     {
+        $settings = SendcloudPlugin::getInstance()->getSettings();
         $address = $this->createAddress($order);
 
         if ($weight === null) {
@@ -71,24 +72,23 @@ final class JouwWebSendcloudAdapter implements SendcloudInterface
         $items = [];
         foreach ($order->getLineItems() as $item) {
             $purchasable = $item->getPurchasable();
-            
+
+            if ($settings->hsCodeFieldHandle) {
+                $harmonizedSystemCode = $this->tryGetProductField($purchasable, $settings->hsCodeFieldHandle);
+            }
+            if ($settings->originCountryFieldHandle) {
+                $originCountryCode = $this->tryGetProductField($purchasable, $settings->originCountryFieldHandle);
+            }
+
             $parcelItem = new ParcelItem(
                 !empty($item->getDescription()) ? $item->getDescription() : $purchasable->getDescription(),
                 $item->qty,
                 $this->getLineItemWeightGrams($item),
                 $item->getPrice(),
-                null,
-                null,
+                $harmonizedSystemCode ?? null,
+                $originCountryCode ?? null,
                 !empty($item->getSku()) ? $item->getSku() : $purchasable->getSku()
             );
-
-            $settings = SendcloudPlugin::getInstance()->getSettings();
-            if ($settings->hsCodeFieldHandle) {
-                $parcelItem->setHarmonizedSystemCode($this->tryGetProductField($purchasable, $settings->hsCodeFieldHandle));
-            }
-            if ($settings->originCountryFieldHandle) {
-                $parcelItem->setOriginCountryCode($this->tryGetProductField($purchasable, $settings->originCountryFieldHandle));
-            }
 
             $items[] = $parcelItem;
         }
@@ -109,8 +109,9 @@ final class JouwWebSendcloudAdapter implements SendcloudInterface
             $orderNumber,
             $weight,
             $order->reference,
-            \JouwWeb\SendCloud\Model\Parcel::CUSTOMS_SHIPMENT_TYPE_COMMERCIAL_GOODS,
+            \JouwWeb\Sendcloud\Model\Parcel::CUSTOMS_SHIPMENT_TYPE_COMMERCIAL_GOODS,
             $items,
+            null,
             null,
             $order
         );
@@ -122,7 +123,7 @@ final class JouwWebSendcloudAdapter implements SendcloudInterface
      * @param int $parcelId
      * @param Order $order
      * @return Parcel
-     * @throws SendCloudRequestException
+     * @throws SendcloudRequestException
      */
     public function updateParcel(int $parcelId, Order $order): Parcel
     {
@@ -137,8 +138,8 @@ final class JouwWebSendcloudAdapter implements SendcloudInterface
      * @param int $parcelId
      * @param Order $order
      * @return Parcel
-     * @throws SendCloudClientException
-     * @throws SendCloudRequestException
+     * @throws SendcloudClientException
+     * @throws SendcloudRequestException
      */
     public function createLabel(Order $order, int $parcelId): Parcel
     {
@@ -178,7 +179,7 @@ final class JouwWebSendcloudAdapter implements SendcloudInterface
      * @param int $parcelId
      * @param int $format
      * @return string
-     * @throws SendCloudClientException
+     * @throws SendcloudClientException
      */
     public function getLabelPdf(int $parcelId, int $format): string
     {
@@ -189,7 +190,7 @@ final class JouwWebSendcloudAdapter implements SendcloudInterface
      * @param array $parcelIds
      * @param int $format
      * @return string
-     * @throws SendCloudClientException
+     * @throws SendcloudClientException
      */
     public function getLabelsPdf(array $parcelIds, int $format): string
     {
@@ -252,13 +253,13 @@ final class JouwWebSendcloudAdapter implements SendcloudInterface
             $shippingAddress->fullName ?: $shippingAddress->getGivenName() . ' ' . $shippingAddress->getFamilyName(),
             $shippingAddress->getOrganization(),
             $shippingAddress->getAddressLine1(),
-            trim($shippingAddress->getAddressLine2()),
             $locality,
             $shippingAddress->getPostalCode(),
             $shippingAddress->getCountryCode(),
             $order->getEmail(),
+            trim($shippingAddress->getAddressLine2()),
             $phoneNumber ?? null,
-            '',
+            null,
             $shippingAddress->getAdministrativeArea()
         );
     }

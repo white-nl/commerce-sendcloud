@@ -6,10 +6,11 @@ use craft\commerce\elements\Order;
 use craft\commerce\errors\CurrencyException;
 use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\Exception\TransferException;
-use JouwWeb\SendCloud\Client;
-use JouwWeb\SendCloud\Exception\SendCloudRequestException;
-use JouwWeb\SendCloud\Model\Address;
-use JouwWeb\SendCloud\Model\Parcel;
+use JouwWeb\Sendcloud\Client;
+use JouwWeb\Sendcloud\Exception\SendcloudRequestException;
+use JouwWeb\Sendcloud\Model\Address;
+use JouwWeb\Sendcloud\Model\Parcel;
+use JouwWeb\Sendcloud\Model\ShippingMethod;
 use yii\base\InvalidConfigException;
 
 /**
@@ -26,10 +27,12 @@ class SendcloudClient extends Client
      * @param int|null $customsShipmentType
      * @param array|null $items
      * @param string|null $postNumber
+     * @param ShippingMethod|null $shippingMethod
+     * @param string|null $errors
      * @param Order|null $order
      * @return Parcel
      * @throws GuzzleException
-     * @throws SendCloudRequestException
+     * @throws SendcloudRequestException
      * @throws \JsonException
      * @throws CurrencyException
      * @throws InvalidConfigException
@@ -43,6 +46,8 @@ class SendcloudClient extends Client
         ?int $customsShipmentType = null,
         ?array $items = null,
         ?string $postNumber = null,
+        ShippingMethod|int|null $shippingMethod = null,
+        ?string $errors = null,
         ?Order $order = null,
     ): Parcel {
         $parcelData = $this->getParcelData(
@@ -52,7 +57,7 @@ class SendcloudClient extends Client
             $orderNumber,
             $weight,
             false,
-            null,
+            $shippingMethod,
             null,
             $customsInvoiceNumber,
             $customsShipmentType,
@@ -72,7 +77,8 @@ class SendcloudClient extends Client
                 ],
             ]);
 
-            return new Parcel(json_decode((string)$response->getBody(), true, 512, JSON_THROW_ON_ERROR)['parcel']);
+            $parcel = json_decode((string)$response->getBody(), true, 512, JSON_THROW_ON_ERROR)['parcel'];
+            return Parcel::fromData($parcel);
         } catch (TransferException $exception) {
             throw $this->parseGuzzleException($exception, 'Could not create parcel in Sendcloud.');
         }

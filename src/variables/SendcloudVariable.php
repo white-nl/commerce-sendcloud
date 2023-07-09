@@ -1,13 +1,12 @@
 <?php
 
-
 namespace white\commerce\sendcloud\variables;
 
 use craft\base\Component;
 use craft\commerce\elements\Order;
 use craft\errors\SiteNotFoundException;
 use craft\helpers\ArrayHelper;
-use JouwWeb\SendCloud\Model\ShippingMethod;
+use JouwWeb\Sendcloud\Model\ShippingMethod;
 use white\commerce\sendcloud\models\OrderSyncStatus;
 use white\commerce\sendcloud\SendcloudPlugin;
 use white\commerce\sendcloud\services\Integrations;
@@ -79,7 +78,7 @@ class SendcloudVariable extends Component
     public function getServicePoint(Order $order, string $carrier = null): ?array
     {
         $status = $this->getOrderSyncStatus($order);
-        if (!$status instanceof \white\commerce\sendcloud\models\OrderSyncStatus) {
+        if (!$status instanceof OrderSyncStatus) {
             return null;
         }
         

@@ -14,7 +14,7 @@ use craft\log\MonologTarget;
 use craft\services\UserPermissions;
 use craft\web\twig\variables\CraftVariable;
 use craft\web\UrlManager;
-use JouwWeb\SendCloud\Exception\SendCloudRequestException;
+use JouwWeb\Sendcloud\Exception\SendcloudRequestException;
 use nystudio107\codeeditor\autocompletes\CraftApiAutocomplete;
 use nystudio107\codeeditor\autocompletes\TwigLanguageAutocomplete;
 use nystudio107\codeeditor\events\RegisterCodeEditorAutocompletesEvent;
@@ -251,7 +251,7 @@ class SendcloudPlugin extends Plugin
     {
         while ($exception !== null) {
             $message .= "\n  " . $exception::class . ": " . $exception->getMessage();
-            if ($exception instanceof SendCloudRequestException) {
+            if ($exception instanceof SendcloudRequestException) {
                 $message .= "  " . $exception->getSendCloudMessage();
             }
 

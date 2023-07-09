@@ -8,10 +8,10 @@ use white\commerce\sendcloud\models\Parcel;
 final class JouwWebParcelNormalizer
 {
     /**
-     * @param \JouwWeb\SendCloud\Model\Parcel $data
+     * @param \JouwWeb\Sendcloud\Model\Parcel $data
      * @return Parcel
      */
-    public function getParcel(\JouwWeb\SendCloud\Model\Parcel $data): Parcel
+    public function getParcel(\JouwWeb\Sendcloud\Model\Parcel $data): Parcel
     {
         $parcel = new Parcel();
         $parcel->setOrderNumber($data->getOrderNumber());
@@ -25,12 +25,14 @@ final class JouwWebParcelNormalizer
             $addressData->getName(),
             $addressData->getCompanyName(),
             $addressData->getStreet(),
-            $addressData->getHouseNumber(),
             $addressData->getCity(),
             $addressData->getPostalCode(),
             $addressData->getCountryCode(),
             $addressData->getEmailAddress(),
-            $addressData->getPhoneNumber()
+            $addressData->getHouseNumber(),
+            $addressData->getPhoneNumber(),
+            $addressData->getAddressLine2(),
+            $addressData->getCountryStateCode(),
         ));
         $parcel->setCarrier($data->getCarrier());
         $parcel->setCreated($data->getCreated());

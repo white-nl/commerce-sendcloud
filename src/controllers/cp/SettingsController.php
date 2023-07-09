@@ -24,7 +24,7 @@ class SettingsController extends Controller
 {
     public const DEFAULT_SENDCLOUD_CONNECT_URL = 'https://panel.sendcloud.sc/shops/craft-commerce/connect/';
     
-    public $sendcloudConnectUrl = self::DEFAULT_SENDCLOUD_CONNECT_URL;
+    public string $sendcloudConnectUrl = self::DEFAULT_SENDCLOUD_CONNECT_URL;
     
     public function init(): void
     {
