@@ -1,0 +1,56 @@
+---
+name: Bug report
+about: Report an issue or unexpected behavior
+title: ''
+labels: bug
+assignees: WHITE-developer
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to submit a bug report! Please fill out the fields to the best of your knowledge, so we can get to the bottom of the issue as quickly as possible.
+  - type: textarea
+    id: body
+    attributes:
+      label: What happened?
+      value: |
+        ### Description
+
+
+
+        ### Steps to reproduce
+
+        1.
+
+        ### Expected behavior
+
+
+
+        ### Actual behavior
+
+    validations:
+      required: true
+  - type: input
+    id: sendcloudVersion
+    attributes:
+      label: Plugin version
+    validations:
+      required: true
+  - type: input
+    id: cmsVersion
+    attributes:
+      label: Craft CMS version
+    validations:
+      required: true
+  - type: input
+    id: commerceVersion
+    attributes:
+      label: Craft Commerce version
+    validations:
+      required: true
+  - type: input
+    id: phpVersion
+    attributes:
+      label: PHP version
+    validations:
+      required: true
