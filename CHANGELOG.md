@@ -2,9 +2,19 @@
 
 ## Unreleased
 
+## 3.0.0 - 2023-10-16
+
+### Added
+- Added the EVENT_AFTER_CREATE_ADDRESS
+
 ### Changed
 - Updated `jouwweb/sendcloud` to 5.0.1
 - The country is now getting send as city if the Craft address doesn't have a locality ([#15](https://github.com/white-nl/commerce-sendcloud/issues/15))
+- AddressLine2 is no longer used for houseNumer. Use the new event to manipulate the data if needed ([#16](https://github.com/white-nl/commerce-sendcloud/issues/16))
+
+### Fixed
+- The postalCode is now set as empty string when not available ([#17](https://github.com/white-nl/commerce-sendcloud/issues/17))
+- Updated the example-templates to work again with the commerce example-templates
 
 ## 2.2.1 - 2023-06-22
 
