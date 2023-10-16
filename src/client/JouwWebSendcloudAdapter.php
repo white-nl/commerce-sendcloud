@@ -15,18 +15,25 @@ use craft\helpers\ArrayHelper;
 use GuzzleHttp\Exception\GuzzleException;
 use JouwWeb\Sendcloud\Exception\SendcloudClientException;
 use JouwWeb\Sendcloud\Exception\SendcloudRequestException;
-use JouwWeb\Sendcloud\Model\Address;
 use JouwWeb\Sendcloud\Model\ParcelItem;
 use JouwWeb\Sendcloud\Model\ShippingMethod;
 use Throwable;
 use white\commerce\sendcloud\client\SendcloudClient as Client;
+use white\commerce\sendcloud\events\AddressEvent;
+use white\commerce\sendcloud\models\Address;
 use white\commerce\sendcloud\models\Parcel;
 use white\commerce\sendcloud\SendcloudPlugin;
+use yii\base\Component;
 use yii\base\InvalidConfigException;
 
-final class JouwWebSendcloudAdapter implements SendcloudInterface
+final class JouwWebSendcloudAdapter extends Component implements SendcloudInterface
 {
     private ?array $sendcloudShippingMethods = null;
+
+    /**
+     * @var string Event emitted before the Sendcloud address is created
+     */
+    public const EVENT_AFTER_CREATE_ADDRESS = 'afterCreateAddress';
 
     /**
      * JouwWebSendcloudAdapter constructor.
@@ -112,6 +119,7 @@ final class JouwWebSendcloudAdapter implements SendcloudInterface
             \JouwWeb\Sendcloud\Model\Parcel::CUSTOMS_SHIPMENT_TYPE_COMMERCIAL_GOODS,
             $items,
             null,
+            $this->getShippingMethods()[$order->getShippingMethod()->getName()] ?? null,
             null,
             $order
         );
@@ -249,19 +257,28 @@ final class JouwWebSendcloudAdapter implements SendcloudInterface
             $locality = $country->getName();
         }
 
-        return new Address(
+        $address = new Address(
             $shippingAddress->fullName ?: $shippingAddress->getGivenName() . ' ' . $shippingAddress->getFamilyName(),
             $shippingAddress->getOrganization(),
             $shippingAddress->getAddressLine1(),
             $locality,
-            $shippingAddress->getPostalCode(),
+            $shippingAddress->getPostalCode() ?? '',
             $shippingAddress->getCountryCode(),
             $order->getEmail(),
-            trim($shippingAddress->getAddressLine2()),
-            $phoneNumber ?? null,
             null,
+            $phoneNumber ?? null,
+            $shippingAddress->getAddressLine2(),
             $shippingAddress->getAdministrativeArea()
         );
+
+        $addressEvent = new AddressEvent([
+            'shippingAddress' => $shippingAddress,
+            'address' => $address,
+        ]);
+
+        $this->trigger(self::EVENT_AFTER_CREATE_ADDRESS, $addressEvent);
+
+        return $address;
     }
 
     /**

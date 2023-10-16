@@ -2,31 +2,8 @@
 
 namespace white\commerce\sendcloud\models;
 
-final class Address implements \Stringable
+final class Address extends \JouwWeb\Sendcloud\Model\Address implements \Stringable
 {
-    public function __construct(
-        private string $name,
-        private ?string $companyName,
-        private string $street,
-        private string $city,
-        private string $postalCode,
-        private string $countryCode,
-        private string $emailAddress,
-        private ?string $houseNumber = null,
-        private ?string $phoneNumber = null,
-        private ?string $addressLine2 = null,
-        private ?string $countryStateCode = null,
-    ) {
-    }
-
-    /**
-     * @return string
-     */
-    public function getName(): string
-    {
-        return $this->name;
-    }
-
     /**
      * @param string $name
      * @return void
@@ -34,14 +11,6 @@ final class Address implements \Stringable
     public function setName(string $name): void
     {
         $this->name = $name;
-    }
-
-    /**
-     * @return string|null
-     */
-    public function getCompanyName(): ?string
-    {
-        return $this->companyName;
     }
 
     /**
@@ -54,11 +23,12 @@ final class Address implements \Stringable
     }
 
     /**
-     * @return string
+     * @param string|null $addressLine1
+     * @return void
      */
-    public function getStreet(): string
+    public function setAddressLine1(?string $addressLine1): void
     {
-        return $this->street;
+        $this->addressLine1 = $addressLine1;
     }
 
     /**
@@ -71,28 +41,12 @@ final class Address implements \Stringable
     }
 
     /**
-     * @return null|string
-     */
-    public function getHouseNumber(): ?string
-    {
-        return $this->houseNumber;
-    }
-
-    /**
      * @param ?string $houseNumber
      * @return void
      */
     public function setHouseNumber(?string $houseNumber = null): void
     {
         $this->houseNumber = $houseNumber;
-    }
-
-    /**
-     * @return string
-     */
-    public function getCity(): string
-    {
-        return $this->city;
     }
 
     /**
@@ -105,28 +59,12 @@ final class Address implements \Stringable
     }
 
     /**
-     * @return string
-     */
-    public function getPostalCode(): string
-    {
-        return $this->postalCode;
-    }
-
-    /**
      * @param string $postalCode
      * @return void
      */
     public function setPostalCode(string $postalCode): void
     {
         $this->postalCode = $postalCode;
-    }
-
-    /**
-     * @return string
-     */
-    public function getCountryCode(): string
-    {
-        return $this->countryCode;
     }
 
     /**
@@ -139,28 +77,12 @@ final class Address implements \Stringable
     }
 
     /**
-     * @return string
-     */
-    public function getEmailAddress(): string
-    {
-        return $this->emailAddress;
-    }
-
-    /**
      * @param string $emailAddress
      * @return void
      */
     public function setEmailAddress(string $emailAddress): void
     {
         $this->emailAddress = $emailAddress;
-    }
-
-    /**
-     * @return string|null
-     */
-    public function getPhoneNumber(): ?string
-    {
-        return $this->phoneNumber;
     }
 
     /**
@@ -173,14 +95,6 @@ final class Address implements \Stringable
     }
 
     /**
-     * @retrun null|string
-     */
-    public function getAddressLine2(): ?string
-    {
-        return $this->addressLine2;
-    }
-
-    /**
      * @param null|string $addressLine2
      * @Return void
      */
@@ -190,62 +104,11 @@ final class Address implements \Stringable
     }
 
     /**
-     * @return null|string
-     */
-    public function getCountryStateCode(): ?string
-    {
-        return $this->countryStateCode;
-    }
-
-    /**
      * @param null|string $countryStateCode
      * @return void
      */
     public function setCountryStateCode(?string $countryStateCode): void
     {
         $this->countryStateCode = $countryStateCode;
-    }
-
-    /**
-     * @return string
-     */
-    public function getDisplayName(): string
-    {
-        $displayName = $this->getName();
-
-        if ($this->getCompanyName()) {
-            $displayName .= ' / ' . $this->getCompanyName();
-        }
-
-        return $displayName;
-    }
-
-    /**
-     * @return array
-     */
-    public function toArray(): array
-    {
-        return [
-            'city' => $this->getCity(),
-            'companyName' => $this->getCompanyName(),
-            'countryCode' => $this->getCountryCode(),
-            'displayName' => $this->getDisplayName(),
-            'emailAddress' => $this->getEmailAddress(),
-            'houseNumber' => $this->getHouseNumber(),
-            'name' => $this->getName(),
-            'phoneNumber' => $this->getPhoneNumber(),
-            'postalCode' => $this->getPostalCode(),
-            'street' => $this->getStreet(),
-            'addressLine2' => $this->getAddressLine2(),
-            'countryStateCode' => $this->getCountryStateCode(),
-        ];
-    }
-
-    /**
-     * @return string
-     */
-    public function __toString(): string
-    {
-        return $this->getDisplayName();
     }
 }

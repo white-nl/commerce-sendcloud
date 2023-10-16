@@ -56,7 +56,7 @@ class SendcloudClient extends Client
             (string)$servicePointId,
             $orderNumber,
             $weight,
-            false,
+            true, // true to set the shippingmethod,
             $shippingMethod,
             null,
             $customsInvoiceNumber,
@@ -65,9 +65,13 @@ class SendcloudClient extends Client
             $postNumber
         );
 
+        // set back to false
+        $parcelData['request_label'] = false;
+
         if ($order) {
             $parcelData['total_order_value'] = $order->getTotalPrice();
             $parcelData['total_order_value_currency'] = $order->getPaymentCurrency();
+            $parcelData['shipping_method_checkout_name'] = $order->getShippingMethod()->name;
         }
 
         try {
