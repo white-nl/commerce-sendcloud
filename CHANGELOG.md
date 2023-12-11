@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+### Fixed
+- Fixed pushing a order to sendcloud when it doesn't have a sendcloud shipping method
+
 ## 3.0.0 - 2023-10-16
 
 ### Added
