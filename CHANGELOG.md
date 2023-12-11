@@ -1,6 +1,6 @@
 # Release Notes for Craft Sendcloud Plugin
 
-## Unreleased
+## 3.0.1 - 2023-12-11
 
 ### Fixed
 - Fixed pushing a order to sendcloud when it doesn't have a sendcloud shipping method
