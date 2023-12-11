@@ -50,13 +50,15 @@ class SendcloudClient extends Client
         ?string $errors = null,
         ?Order $order = null,
     ): Parcel {
+        $requestLabel = $shippingMethod !== null;
+
         $parcelData = $this->getParcelData(
             null,
             $shippingAddress,
             (string)$servicePointId,
             $orderNumber,
             $weight,
-            true, // true to set the shippingmethod,
+            $requestLabel, // true to set the shippingmethod only if a shipping method is passed,
             $shippingMethod,
             null,
             $customsInvoiceNumber,
@@ -66,7 +68,9 @@ class SendcloudClient extends Client
         );
 
         // set back to false
-        $parcelData['request_label'] = false;
+        if ($requestLabel) {
+            $parcelData['request_label'] = false;
+        }
 
         if ($order) {
             $parcelData['total_order_value'] = $order->getTotalPrice();
