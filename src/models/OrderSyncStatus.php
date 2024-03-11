@@ -100,6 +100,11 @@ class OrderSyncStatus extends Model
     /**
      * @var int
      */
+    public const STATUS_PARCEL_CANCELLATION_FAILED = 94;
+
+    /**
+     * @var int
+     */
     public const STATUS_NO_LABEL = 999;
 
     /**
@@ -143,6 +148,51 @@ class OrderSyncStatus extends Model
     public const STATUS_SUBMITTING_CANCELLATION_REQUEST = 2001;
 
     /**
+     * @var int
+     */
+    public const STATUS_EXCEPTION = 62996;
+
+    /**
+     * @var int
+     */
+    public const STATUS_AT_CUSTOMS = 62989;
+
+    /**
+     * @var int
+     */
+    public const STATUS_DELIVERY_METHOD_CHANGED = 62993;
+
+    /**
+     * @var int
+     */
+    public const STATUS_AT_SORTING_CENTRE = 62990;
+
+    /**
+     * @var int
+     */
+    public const STATUS_REFUSED_BY_RECIPIENT = 62991;
+
+    /**
+     * @var int
+     */
+    public const STATUS_RETURNED_TO_SENDER = 62992;
+
+    /**
+     * @var int
+     */
+    public const STATUS_DELIVERY_DATE_CHANGED = 62994;
+
+    /**
+     * @var int
+     */
+    public const STATUS_DELIVERY_ADDRESS_CHANGED = 62995;
+
+    /**
+     * @var int
+     */
+    public const STATUS_ADDRESS_INVALID = 62997;
+
+    /**
      * @var array<int, string>
      */
     public const STATUSES = [
@@ -162,6 +212,7 @@ class OrderSyncStatus extends Model
         self::STATUS_PARCEL_EN_ROUTE => "Parcel en route",
         self::STATUS_DRIVER_EN_ROUTE => "Driver en route",
         self::STATUS_SHIPMENT_COLLECTED_BY_CUSTOMER => "Shipment collected by customer",
+        self::STATUS_PARCEL_CANCELLATION_FAILED => "Parcel cancellation failed.",
         self::STATUS_NO_LABEL => "No label",
         self::STATUS_READY_TO_SEND => "Ready to send",
         self::STATUS_BEING_ANNOUNCED => "Being announced",
@@ -171,6 +222,15 @@ class OrderSyncStatus extends Model
         self::STATUS_CANCELLATION_REQUESTED => "Cancellation requested",
         self::STATUS_CANCELLED => "Cancelled",
         self::STATUS_SUBMITTING_CANCELLATION_REQUEST => "Submitting cancellation request",
+        self::STATUS_EXCEPTION => "Exception",
+        self::STATUS_AT_CUSTOMS => "At Customs",
+        self::STATUS_AT_SORTING_CENTRE => "At sorting centre",
+        self::STATUS_REFUSED_BY_RECIPIENT => "Refused by recipient",
+        self::STATUS_RETURNED_TO_SENDER => "Returned to sender",
+        self::STATUS_DELIVERY_METHOD_CHANGED => "Delivery method changed",
+        self::STATUS_DELIVERY_DATE_CHANGED => "Delivery date changed",
+        self::STATUS_DELIVERY_ADDRESS_CHANGED => "Delivery address changed",
+        self::STATUS_ADDRESS_INVALID => "Address invalid",
     ];
 
     /** @var integer */

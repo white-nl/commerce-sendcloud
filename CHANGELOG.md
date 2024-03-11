@@ -1,9 +1,17 @@
 # Release Notes for Craft Sendcloud Plugin
 
+## 3.0.2 - 2024-03-11
+
+### Fixed
+- Fixed pushing a order to sendcloud when the address has an administrativeArea
+
+### Added
+- Added new Sendcloud statusses
+
 ## 3.0.1 - 2023-12-11
 
 ### Fixed
-- Fixed pushing a order to sendcloud when it doesn't have a sendcloud shipping method
+- Fixed pushing a order to Sendcloud when it doesn't have a sendcloud shipping method
 
 ## 3.0.0 - 2023-10-16
 

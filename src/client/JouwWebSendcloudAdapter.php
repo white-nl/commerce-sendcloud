@@ -13,6 +13,7 @@ use craft\commerce\Plugin as CommercePlugin;
 use craft\errors\InvalidFieldException;
 use craft\helpers\ArrayHelper;
 use GuzzleHttp\Exception\GuzzleException;
+use Illuminate\Support\Collection;
 use JouwWeb\Sendcloud\Exception\SendcloudClientException;
 use JouwWeb\Sendcloud\Exception\SendcloudRequestException;
 use JouwWeb\Sendcloud\Model\ParcelItem;
@@ -250,11 +251,17 @@ final class JouwWebSendcloudAdapter extends Component implements SendcloudInterf
         }
 
         $locality = $shippingAddress->getLocality();
+        $countryCode = $shippingAddress->getCountryCode();
         if ($locality === null) {
-            $countryCode = $shippingAddress->getCountryCode();
             $countryRepository = new CountryRepository();
             $country = $countryRepository->get($countryCode);
             $locality = $country->getName();
+        }
+
+        $administrativeArea = null;
+        if ($shippingAddress->getAdministrativeArea()) {
+            $administrativeAreas = new Collection(Craft::$app->getAddresses()->getSubdivisionRepository()->getList([$countryCode]));
+            $administrativeArea = $administrativeAreas->flip()->get($shippingAddress->getAdministrativeArea());
         }
 
         $address = new Address(
@@ -268,7 +275,7 @@ final class JouwWebSendcloudAdapter extends Component implements SendcloudInterf
             null,
             $phoneNumber ?? null,
             $shippingAddress->getAddressLine2(),
-            $shippingAddress->getAdministrativeArea()
+            $administrativeArea
         );
 
         $addressEvent = new AddressEvent([
