@@ -21,6 +21,7 @@ use JouwWeb\Sendcloud\Model\ShippingMethod;
 use Throwable;
 use white\commerce\sendcloud\client\SendcloudClient as Client;
 use white\commerce\sendcloud\events\AddressEvent;
+use white\commerce\sendcloud\events\ParcelWeightEvent;
 use white\commerce\sendcloud\models\Address;
 use white\commerce\sendcloud\models\Parcel;
 use white\commerce\sendcloud\SendcloudPlugin;
@@ -35,6 +36,9 @@ final class JouwWebSendcloudAdapter extends Component implements SendcloudInterf
      * @var string Event emitted before the Sendcloud address is created
      */
     public const EVENT_AFTER_CREATE_ADDRESS = 'afterCreateAddress';
+
+    /** @var string Event emitted before the parcel weight is set */
+    public const EVENT_BEFORE_SET_PARCEL_WEIGHT = 'beforeSetParcelWeight';
 
     /**
      * JouwWebSendcloudAdapter constructor.
@@ -110,12 +114,19 @@ final class JouwWebSendcloudAdapter extends Component implements SendcloudInterf
             Craft::error('Unable to generate Sendcloud order reference for Order ID: ' . $order->getId() . ', with format: ' . $orderNumberTemplate . ', error: ' . $exception->getMessage());
             throw $exception;
         }
+
+        $parcelWeightEvent = new ParcelWeightEvent([
+            'weight' => &$weight,
+            'order' => $order,
+        ]);
+
+        $this->trigger(self::EVENT_BEFORE_SET_PARCEL_WEIGHT, $parcelWeightEvent);
         
         $parcel = $this->client->createParcel(
             $address,
             $servicePointId,
             $orderNumber,
-            $weight,
+            $parcelWeightEvent->weight,
             $order->reference,
             \JouwWeb\Sendcloud\Model\Parcel::CUSTOMS_SHIPMENT_TYPE_COMMERCIAL_GOODS,
             $items,

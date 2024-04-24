@@ -58,7 +58,7 @@ class SendcloudClient extends Client
             (string)$servicePointId,
             $orderNumber,
             $weight,
-            $requestLabel, // true to set the shippingmethod only if a shipping method is passed,
+            $requestLabel, // true to set the shipping method only if a shipping method is passed,
             $shippingMethod,
             null,
             $customsInvoiceNumber,

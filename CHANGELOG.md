@@ -1,12 +1,18 @@
 # Release Notes for Craft Sendcloud Plugin
 
+## 3.1.0 - 2024-04-24
+
+### Added
+
+ - Added an `EVENT_BEFORE_SET_PARCEL_WEIGHT` event to manipulate the parcel weight
+
 ## 3.0.2 - 2024-03-11
 
 ### Fixed
 - Fixed pushing a order to sendcloud when the address has an administrativeArea
 
 ### Added
-- Added new Sendcloud statusses
+- Added new Sendcloud statuses
 
 ## 3.0.1 - 2023-12-11
 
@@ -21,7 +27,7 @@
 ### Changed
 - Updated `jouwweb/sendcloud` to 5.0.1
 - The country is now getting send as city if the Craft address doesn't have a locality ([#15](https://github.com/white-nl/commerce-sendcloud/issues/15))
-- AddressLine2 is no longer used for houseNumer. Use the new event to manipulate the data if needed ([#16](https://github.com/white-nl/commerce-sendcloud/issues/16))
+- AddressLine2 is no longer used for houseNubmer. Use the new event to manipulate the data if needed ([#16](https://github.com/white-nl/commerce-sendcloud/issues/16))
 
 ### Fixed
 - The postalCode is now set as empty string when not available ([#17](https://github.com/white-nl/commerce-sendcloud/issues/17))
