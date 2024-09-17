@@ -4,15 +4,17 @@
 namespace white\commerce\sendcloud\services;
 
 use craft\base\Component;
+use craft\commerce\Plugin;
 use craft\errors\SiteNotFoundException;
-use white\commerce\sendcloud\client\JouwWebFactory;
+use white\commerce\sendcloud\client\ClientFactory;
+use white\commerce\sendcloud\client\SendcloudClient;
 use white\commerce\sendcloud\client\SendcloudInterface;
 use white\commerce\sendcloud\models\Integration;
 use white\commerce\sendcloud\SendcloudPlugin;
 
 class SendcloudApi extends Component
 {
-    private array $clientsBySiteId = [];
+    private array $clientsByStoreId = [];
     
     private ?Integrations $integrations = null;
 
@@ -24,26 +26,26 @@ class SendcloudApi extends Component
     }
 
     /**
-     * Gets the Sendcloud API client configured for the given site.
-     * @param int|null $siteId
-     * @return SendcloudInterface
+     * Gets the Sendcloud API client configured for the given store.
+     * @param int|null $storeId
+     * @return SendcloudClient
      * @throws SiteNotFoundException
      */
-    public function getClient(?int $siteId = null): SendcloudInterface
+    public function getClient(?int $storeId = null): SendcloudClient
     {
-        if ($siteId === null) {
-            $siteId = \Craft::$app->getSites()->getPrimarySite()->id;
+        if ($storeId === null) {
+            $storeId = Plugin::getInstance()->getStores()->getPrimaryStore()->id;
         }
         
-        if (!array_key_exists($siteId, $this->clientsBySiteId)) {
-            $integration = $this->integrations->getIntegrationBySiteId($siteId);
+        if (!array_key_exists($storeId, $this->clientsByStoreId)) {
+            $integration = $this->integrations->getIntegrationByStoreId($storeId);
             if (!$integration instanceof Integration) {
-                throw new \RuntimeException(sprintf('Integration not found for site #%s.', $siteId));
+                throw new \RuntimeException(sprintf('Integration not found for store #%s.', $storeId));
             }
 
-            $this->clientsBySiteId[$siteId] = (new JouwWebFactory($integration))->getClient();
+            $this->clientsByStoreId[$storeId] = (new ClientFactory($integration))->getClient();
         }
 
-        return $this->clientsBySiteId[$siteId];
+        return $this->clientsByStoreId[$storeId];
     }
 }

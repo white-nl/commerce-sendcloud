@@ -1,0 +1,105 @@
+{% extends 'commerce-sendcloud/_layouts/store-settings' %}
+
+{% block content %}
+    <div class="integration-status" data-store-id="{{ store.id }}">
+        <div>
+            {{ "Connection status:"|t('commerce-sendcloud') }}
+            <output class="integration-status-output"></output>
+            <span class="integration-loading">{{ "Loading..."|t('commerce-sendcloud') }}</span>
+            <button type="button" class="btn icon add integration-register"
+                style="display: none;">{{ "Register"|t('commerce-sendcloud') }}</button>
+            <button type="button" class="btn icon delete integration-remove"
+                    style="display: none;">{{ "Remove"|t('commerce-sendcloud') }}</button>
+            <span class="integration-remove-help" style="display: none;">
+                {{ "Any related shipping rules will be removed in Sendcloud"|t('commerce-sendcloud') }}
+            </span>
+            <span class="integration-register-help" style="display: none;">
+                {{ "You need a valid Sendcloud account to connect."|t('commerce-sendcloud') }}
+                {{ "No account yet?"|t('commerce-sendcloud') }}
+                <a href="https://panel.sendcloud.sc/accounts/signup?r=500" target="_blank">
+                    {{ "Create a Sendcloud account"|t('commerce-sendcloud') }}
+                </a>
+            </span>
+        </div>
+        <div>
+            {{ "Service points:"|t('commerce-sendcloud') }}
+            <output class="service-points-status"></output>
+            <span class="integration-loading">{{ "Loading..."|t('commerce-sendcloud') }}</span>
+        </div>
+    </div>
+
+    {% if false %}
+    <script>{% endif %}
+        {% js %}
+        $('.integration-status').each(function () {
+            var storeId = $(this).data('store-id');
+            var statusOutput = $(this).find('.integration-status-output');
+            var servicePointOutput = $(this).find('.service-points-status');
+            var loadingLabel = $(this).find('.integration-loading');
+            var registerButton = $(this).find('.integration-register');
+            var registerHelp = $(this).find('.integration-register-help');
+            var removeButton = $(this).find('.integration-remove');
+            var removeHelp = $(this).find('.integration-remove-help');
+
+            var updateStatus = function (data) {
+                statusOutput.html(
+                    '<span class="status ' + (data.status === 'active' ? 'live' : (data.status === 'pending' ? 'pending' : 'off')) + '"></span>' +
+                    data.statusText
+                );
+                servicePointOutput.html(
+                    data.status !== 'active'
+                        ? '<span class="status pending"></span>{{ "Unknown"|t('commerce-sendcloud') }}'
+                        : (
+                            data.integration.servicePointEnabled
+                                ? '<span class="status live"></span>{{ "Enabled"|t('commerce-sendcloud') }}'
+                                : '<span class="status off"></span>{{ "Disabled"|t('commerce-sendcloud') }}'
+                        )
+                );
+                loadingLabel.hide();
+                if (data.status !== 'none') {
+                    registerButton.hide();
+                    registerHelp.hide();
+                    removeButton.show();
+                    removeHelp.show();
+                } else {
+                    registerButton.show();
+                    registerHelp.show();
+                    removeButton.hide();
+                    removeHelp.hide();
+                }
+            };
+
+            $.ajax('{{ actionUrl('commerce-sendcloud/cp/store-settings/get-integration-status') }}', {data: {storeId: storeId}})
+                .done(function (data) {
+                    updateStatus(data);
+                });
+
+            registerButton.on('click', function (e) {
+                e.preventDefault();
+
+                $('<form/>')
+                    .attr('method', 'post')
+                    .attr('target', '_blank')
+                    .append($('<input/>').attr('type', 'hidden').attr('name', Craft.csrfTokenName).attr('value', Craft.csrfTokenValue))
+                    .append($('<input/>').attr('type', 'hidden').attr('name', 'action').attr('value', 'commerce-sendcloud/cp/store-settings/connect'))
+                    .append($('<input/>').attr('type', 'hidden').attr('name', 'storeId').attr('value', storeId))
+                    .appendTo(document.body)
+                    .submit();
+            });
+
+            removeButton.on('click', function (e) {
+                e.preventDefault();
+
+                $('<form/>')
+                    .attr('method', 'post')
+                    .append($('<input/>').attr('type', 'hidden').attr('name', Craft.csrfTokenName).attr('value', Craft.csrfTokenValue))
+                    .append($('<input/>').attr('type', 'hidden').attr('name', 'action').attr('value', 'commerce-sendcloud/cp/store-settings/disconnect'))
+                    .append($('<input/>').attr('type', 'hidden').attr('name', 'storeId').attr('value', storeId))
+                    .appendTo(document.body)
+                    .submit();
+            });
+        });
+        {% endjs %}
+        {% if false %}
+    </script>{% endif %}
+{% endblock %}

@@ -14,7 +14,6 @@ use craft\log\MonologTarget;
 use craft\services\UserPermissions;
 use craft\web\twig\variables\CraftVariable;
 use craft\web\UrlManager;
-use JouwWeb\Sendcloud\Exception\SendcloudRequestException;
 use nystudio107\codeeditor\autocompletes\CraftApiAutocomplete;
 use nystudio107\codeeditor\autocompletes\TwigLanguageAutocomplete;
 use nystudio107\codeeditor\events\RegisterCodeEditorAutocompletesEvent;
@@ -23,6 +22,7 @@ use Psr\Log\LogLevel;
 use white\commerce\sendcloud\elements\actions\BulkPrintSendcloudLabelsAction;
 use white\commerce\sendcloud\elements\actions\BulkPushToSendcloudAction;
 use white\commerce\sendcloud\models\Settings;
+use white\commerce\sendcloud\plugin\Routes;
 use white\commerce\sendcloud\services\Integrations;
 use white\commerce\sendcloud\services\OrderSync;
 use white\commerce\sendcloud\services\SendcloudApi;
@@ -54,7 +54,9 @@ class SendcloudPlugin extends Plugin
         ];
     }
 
-    public string $schemaVersion = '1.0.3';
+    public string $schemaVersion = '3.0.0';
+
+    use Routes;
 
     /**
      * @inheritdoc
@@ -62,14 +64,19 @@ class SendcloudPlugin extends Plugin
     public function init(): void
     {
         parent::init();
+        $request = Craft::$app->getRequest();
 
         $this->registerNameOverride();
-        $this->registerCpUrls();
-        $this->registerSiteUrls();
         $this->registerEventListeners();
         $this->registerVariables();
         $this->registerPermissions();
         $this->_registerLogTarget();
+
+        if ($request->getIsCpRequest()) {
+            $this->_registerCpRoutes();
+        } else {
+            $this->_registerSiteRoutes();
+        }
     }
 
     /**
@@ -94,12 +101,21 @@ class SendcloudPlugin extends Plugin
     public function getCpNavItem(): ?array
     {
         $item = parent::getCpNavItem();
-        $item['subnav'] = [
-            'settings' => [
+
+        if (Craft::$app->getUser()->checkPermission('commerce-sendcloud-manageStoreSettings')) {
+            $item['subnav']['store-settings'] = [
+                'label' => Craft::t('commerce-sendcloud', 'Store Settings'),
+                'url' => 'commerce-sendcloud/store-settings',
+            ];
+        }
+
+        if (Craft::$app->getUser()->getIsAdmin() && Craft::$app->getConfig()->getGeneral()->allowAdminChanges) {
+            $item['subnav']['settings'] = [
                 'label' => Craft::t('commerce-sendcloud', 'Settings'),
                 'url' => 'commerce-sendcloud/settings',
-            ],
-        ];
+            ];
+        }
+
         return $item;
     }
 
@@ -114,35 +130,6 @@ class SendcloudPlugin extends Plugin
         }
 
         $this->name = $name;
-    }
-
-    /**
-     * @return void
-     */
-    protected function registerCpUrls(): void
-    {
-        Event::on(
-            UrlManager::class,
-            UrlManager::EVENT_REGISTER_CP_URL_RULES,
-            function(RegisterUrlRulesEvent $event): void {
-                $event->rules['commerce-sendcloud'] = 'commerce-sendcloud/cp/settings/index';
-                $event->rules['commerce-sendcloud/settings'] = 'commerce-sendcloud/cp/settings/index';
-            }
-        );
-    }
-
-    /**
-     * @return void
-     */
-    protected function registerSiteUrls(): void
-    {
-        Event::on(
-            UrlManager::class,
-            UrlManager::EVENT_REGISTER_SITE_URL_RULES,
-            function(RegisterUrlRulesEvent $event): void {
-                $event->rules['commerce-sendcloud/webhook'] = 'commerce-sendcloud/webhook/handle';
-            }
-        );
     }
 
     /**
@@ -221,6 +208,9 @@ class SendcloudPlugin extends Plugin
                 $event->permissions[] = [
                     'heading' => Craft::t('commerce-sendcloud', 'Sendcloud'),
                     'permissions' => [
+                        'commerce-sendcloud-manageStoreSettings' => [
+                            'label' => Craft::t('commerce-sendcloud', 'Manage sendcloud store settings'),
+                        ],
                         'commerce-sendcloud-pushOrders' => [
                             'label' => Craft::t('commerce-sendcloud', 'Manually push orders to Sendcloud'),
                         ],

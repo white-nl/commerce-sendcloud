@@ -4,91 +4,93 @@ namespace white\commerce\sendcloud\client;
 
 use craft\commerce\elements\Order;
 use craft\commerce\errors\CurrencyException;
+use craft\helpers\ArrayHelper;
+use craft\helpers\Json;
+use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\Exception\TransferException;
-use JouwWeb\Sendcloud\Client;
-use JouwWeb\Sendcloud\Exception\SendcloudRequestException;
-use JouwWeb\Sendcloud\Model\Address;
-use JouwWeb\Sendcloud\Model\Parcel;
-use JouwWeb\Sendcloud\Model\ShippingMethod;
+use GuzzleHttp\Utils;
+use white\commerce\sendcloud\models\Integration;
+use white\commerce\sendcloud\models\ShippingMethod;
 use yii\base\InvalidConfigException;
 
 /**
  * Client to perform calls on the Sendcloud API.
  */
-class SendcloudClient extends Client
+class SendcloudClient
 {
+    protected const API_BASE_URL = 'https://panel.sendcloud.sc/api/v2/';
+
+    protected Client $guzzleClient;
+
+    private ?array $sendcloudShippingMethods = null;
+
+    public function __construct(
+        protected string $publicKey,
+        protected string $secretKey,
+        protected ?string $partnerId = null,
+        ?string $apiBaseUrl = null,
+    ) {
+        $clientConfig = [
+            'base_uri' => $apiBaseUrl ?: self::API_BASE_URL,
+            'timeout' => 60,
+            'auth' => [
+                $publicKey,
+                $secretKey,
+            ],
+            'headers' => [
+                'User-Agent' => 'white-nl/commerce-sendcloud ' . Utils::defaultUserAgent(),
+            ],
+        ];
+
+        if ($partnerId) {
+            $clientConfig['headers']['Sendcloud-Partner-Id'] = $partnerId;
+        }
+
+        $this->guzzleClient = new Client($clientConfig);
+    }
+
+    public function removeIntegration(int $integrationId): bool
+    {
+        $response = $this->guzzleClient->delete('integrations/' . $integrationId);
+        if ($response->getStatusCode() !== 204) {
+
+        }
+        return true;
+    }
+
     /**
-     * @param Address $shippingAddress
-     * @param int|null $servicePointId
-     * @param string|null $orderNumber
-     * @param int|null $weight
-     * @param string|null $customsInvoiceNumber
-     * @param int|null $customsShipmentType
-     * @param array|null $items
-     * @param string|null $postNumber
-     * @param ShippingMethod|null $shippingMethod
-     * @param string|null $errors
-     * @param Order|null $order
-     * @return Parcel
-     * @throws GuzzleException
-     * @throws SendcloudRequestException
-     * @throws \JsonException
-     * @throws CurrencyException
-     * @throws InvalidConfigException
+     * @param int $storeId
+     * @return ShippingMethod[]
      */
-    public function createParcel(
-        Address $shippingAddress,
-        ?int $servicePointId,
-        ?string $orderNumber = null,
-        ?int $weight = null,
-        ?string $customsInvoiceNumber = null,
-        ?int $customsShipmentType = null,
-        ?array $items = null,
-        ?string $postNumber = null,
-        ShippingMethod|int|null $shippingMethod = null,
-        ?string $errors = null,
-        ?Order $order = null,
-    ): Parcel {
-        $requestLabel = $shippingMethod !== null;
+    public function getShippingMethods(int $storeId): array
+    {
+        if (!$this->sendcloudShippingMethods) {
+            $this->sendcloudShippingMethods = \Craft::$app->getCache()->getOrSet("sendcloud-shipping-methods-$storeId", function() {
+                $response = $this->guzzleClient->get('shipping_methods');
+                $shippingMethodsData = Json::decodeIfJson($response->getBody(), true)['shipping_methods'];
 
-        $parcelData = $this->getParcelData(
-            null,
-            $shippingAddress,
-            (string)$servicePointId,
-            $orderNumber,
-            $weight,
-            $requestLabel, // true to set the shipping method only if a shipping method is passed,
-            $shippingMethod,
-            null,
-            $customsInvoiceNumber,
-            $customsShipmentType,
-            $items,
-            $postNumber
-        );
+                $shippingMethods = array_map(fn(array $shippingMethodData) => (
+                    ShippingMethod::fromArray($shippingMethodData)
+                ), $shippingMethodsData);
 
-        // set back to false
-        if ($requestLabel) {
-            $parcelData['request_label'] = false;
+                // Sort shipping methods by carrier and name
+                usort($shippingMethods, function(ShippingMethod $shippingMethod1, ShippingMethod $shippingMethod2) {
+                    if ($shippingMethod1->getCarrier() !== $shippingMethod2->getCarrier()) {
+                        return strcasecmp($shippingMethod1->getCarrier(), $shippingMethod2->getCarrier());
+                    }
+
+                    return strcasecmp($shippingMethod1->getName(), $shippingMethod2->getName());
+                });
+
+                return ArrayHelper::map(
+                    $shippingMethods,
+                    static fn(ShippingMethod $shippingMethod) => $shippingMethod->getName(),
+                    static fn(ShippingMethod $shippingMethod) => $shippingMethod,
+                );
+            }, 3600);
         }
 
-        if ($order) {
-            $parcelData['total_order_value'] = $order->getTotalPrice();
-            $parcelData['total_order_value_currency'] = $order->getPaymentCurrency();
-            $parcelData['shipping_method_checkout_name'] = $order->getShippingMethod()->name;
-        }
-
-        try {
-            $response = $this->guzzleClient->post('parcels', [
-                'json' => [
-                    'parcel' => $parcelData,
-                ],
-            ]);
-
-            $parcel = json_decode((string)$response->getBody(), true, 512, JSON_THROW_ON_ERROR)['parcel'];
-            return Parcel::fromData($parcel);
-        } catch (TransferException $exception) {
-            throw $this->parseGuzzleException($exception, 'Could not create parcel in Sendcloud.');
-        }
+        return $this->sendcloudShippingMethods;
     }
 }

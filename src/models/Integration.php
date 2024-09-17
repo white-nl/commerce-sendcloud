@@ -16,7 +16,7 @@ class Integration extends Model
     public int $id;
 
     /** @var integer */
-    public int $siteId;
+    public int $storeId;
 
     /** @var string */
     public string $token;
@@ -54,8 +54,8 @@ class Integration extends Model
     public function rules(): array
     {
         return [
-            [['siteId', 'token'], 'required'],
-            [['siteId', 'externalId'], 'integer'],
+            [['storeId', 'token'], 'required'],
+            [['storeId', 'externalId'], 'integer'],
             [['token', 'publicKey', 'secretKey', 'system', 'shopUrl', 'webhookUrl'], 'string'],
         ];
     }

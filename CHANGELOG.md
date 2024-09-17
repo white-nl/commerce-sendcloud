@@ -1,5 +1,7 @@
 # Release Notes for Craft Sendcloud Plugin
 
+## Unreleased
+
 ## 3.1.0 - 2024-04-24
 
 ### Added

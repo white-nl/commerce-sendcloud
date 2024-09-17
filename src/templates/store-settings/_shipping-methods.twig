@@ -1,0 +1,77 @@
+{% extends 'commerce-sendcloud/_layouts/store-settings' %}
+
+{% block content %}
+    <h3>{{ "Shipping methods"|t('commerce-sendcloud') }}</h3>
+    <p>
+        {{ "List of available Sendcloud shipping methods. Only methods for the countries enabled in Craft Commerce settings panel are displayed here."|t('commerce-sendcloud') }}
+        {{ "To create a Craft Commerce method, click the plus-button or manually create a shipping method."|t('commerce-sendcloud') }}
+        {{ "Make sure the name of the Craft shipping method exactly matches the name of the of the Sendcloud shipping method!"|t('commerce-sendcloud') }}
+    </p>
+    <table id="shippingMethods" class="fullwidth data">
+        <thead>
+        <tr>
+            <th scope="col" class="select-cell">{{ "Name"|t('commerce-sendcloud') }}</th>
+            <th scope="col" class="select-cell">{{ "Carrier"|t('commerce-sendcloud') }}</th>
+            <th scope="col" class="select-cell">{{ "Min. Weight, kg."|t('commerce-sendcloud') }}</th>
+            <th scope="col" class="select-cell">{{ "Max. Weight, kg."|t('commerce-sendcloud') }}</th>
+            <th scope="col" class="select-cell">{{ "Service Points"|t('commerce-sendcloud') }}</th>
+            <th colspan="2"></th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for shippingMethod in shippingMethods %}
+            <tr>
+                <td>
+                    {% if shippingMethod.craftMethodId is not null %}
+                        <a href="{{ cpUrl('commerce/store-management/' ~ storeHandle ~ '/shippingmethods/' ~ shippingMethod.craftMethodId) }}" target="_blank">{{ shippingMethod.name }}</a>
+                    {% else %}
+                        <span>{{ shippingMethod.name }}</span>
+                    {% endif %}
+                </td>
+                <td>{{ shippingMethod.carrier }}</td>
+                <td>{{ shippingMethod.minWeight }}</td>
+                <td>{{ shippingMethod.maxWeight }}</td>
+                <td>{{ shippingMethod.servicePointInputRequired ? '&check;' : '' }}</td>
+                <td>
+                    {% if shippingMethod.craftMethodId is not null %}
+                        &check;
+                    {% else %}
+                        <a
+                            href="#" class="create-shipping-method add icon"
+                            title="{{ 'Create'|t('commerce-sendcloud') }}"
+                            data-name="{{ shippingMethod.name }}"
+                        ></a>
+                    {% endif %}
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+    {% if false %}
+    <script>{% endif %}
+    {% js %}
+        var shippingMethodsTable = $('#shippingMethods tbody');
+
+        shippingMethodsTable.on('click', '.create-shipping-method', function (e) {
+            e.preventDefault();
+            var shippingMethod = $(this).data();
+            var gen = new Craft.HandleGenerator('', '');
+
+            $('<form/>')
+                .attr('method', 'post')
+                .attr('target', '_blank')
+                .append($('<input/>').attr('type', 'hidden').attr('name', Craft.csrfTokenName).attr('value', Craft.csrfTokenValue))
+                .append($('<input/>').attr('type', 'hidden').attr('name', 'action').attr('value', 'commerce/shipping-methods/save'))
+                .append($('<input/>').attr('type', 'hidden').attr('name', 'redirect').attr('value', '{{ ('commerce/store-management/' ~ store.handle ~ '/shippingmethods/{id}')|hash }}'))
+                .append($('<input/>').attr('type', 'hidden').attr('name', 'name').attr('value', shippingMethod.name))
+                .append($('<input/>').attr('type', 'hidden').attr('name', 'handle').attr('value', gen.generateTargetValue(shippingMethod.name)))
+                .append($('<input/>').attr('type', 'hidden').attr('name', 'storeId').attr('value', {{ store.id }}))
+                .appendTo(document.body)
+                .submit();
+
+        });
+    {% endjs %}
+    {% if false %}
+    </script>{% endif %}
+{% endblock %}

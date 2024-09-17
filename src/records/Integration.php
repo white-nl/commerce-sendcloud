@@ -5,7 +5,7 @@ namespace white\commerce\sendcloud\records;
 use craft\db\ActiveRecord;
 
 /**
- * @property int $siteId
+ * @property int $storeId
  * @property string $token
  * @property int $externalId
  * @property string $publicKey

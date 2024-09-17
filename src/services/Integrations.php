@@ -30,9 +30,9 @@ class Integrations extends Component
      * @param int $siteId
      * @return Integration|null
      */
-    public function getIntegrationBySiteId(int $siteId): ?Integration
+    public function getIntegrationByStoreId(int $storeId): ?Integration
     {
-        $record = IntegrationRecord::findOne(['siteId' => $siteId]);
+        $record = IntegrationRecord::findOne(['storeId' => $storeId]);
 
         return $record != null ? new Integration($record->toArray()) : null;
     }
@@ -72,7 +72,7 @@ class Integrations extends Component
             return false;
         }
 
-        $record->siteId = $model->siteId;
+        $record->storeId = $model->storeId;
         $record->token = $model->token;
         $record->externalId = $model->externalId;
         $record->publicKey = $model->publicKey;

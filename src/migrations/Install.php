@@ -14,7 +14,7 @@ class Install extends Migration
         if (!$this->db->tableExists('{{%sendcloud_integrations}}')) {
             $this->createTable('{{%sendcloud_integrations}}', [
                 'id' => $this->primaryKey(),
-                'siteId' => $this->integer()->notNull(),
+                'storeId' => $this->integer()->notNull(),
                 'token' => $this->string(16)->notNull(),
                 'externalId' => $this->integer(),
                 'publicKey' => $this->text(),
@@ -29,7 +29,7 @@ class Install extends Migration
                 'uid' => $this->uid(),
             ]);
 
-            $this->createIndex(null, '{{%sendcloud_integrations}}', ['siteId'], true);
+            $this->createIndex(null, '{{%sendcloud_integrations}}', ['storeId'], true);
         }
         
         if (!$this->db->tableExists('{{%sendcloud_ordersyncstatus}}')) {
