@@ -106,8 +106,8 @@ class OrderSync extends Component
         }
 
         $record->parcelId = $model->parcelId;
-        $record->statusId = $model->statusId;
-        $record->statusMessage = $model->statusMessage;
+        $record->statusId = $model->parcelStatus?->value;
+        $record->statusMessage = $model->parcelStatus?->getMessage();
         $record->carrier = $model->carrier;
         $record->trackingNumber = $model->trackingNumber;
         $record->trackingUrl = $model->trackingUrl;
@@ -165,15 +165,16 @@ class OrderSync extends Component
 
                 /** @var Order $order */
                 $order = $event->sender;
+                $store = $order->getStore();
                 $status = $this->getOrderSyncStatusByOrderId($order->getId());
                 $isSendcloudShipping = false;
 
                 if ($status && $status->servicePoint) {
-                    foreach ($this->sendcloudApi->getClient()->getShippingMethods() as $method) {
+                    foreach ($this->sendcloudApi->getClient()->getShippingMethods($store->id) as $method) {
                         // Find the matching sendcloud shipping
-                        if ($method->getName() == $order->getShippingMethod()->getName()) {
+                        if ($method->getName() == $order->shippingMethodName) {
                             $isSendcloudShipping = true;
-                            if (!$method->getAllowsServicePoints()) {
+                            if (!$method->isServicePointInputRequired()) {
                                 // remove the servicePoint info
                                 $status->servicePoint = null;
                                 $this->saveOrderSyncStatus($status);
@@ -209,10 +210,11 @@ class OrderSync extends Component
         if (!$orderStatus instanceof \craft\commerce\models\OrderStatus) {
             return;
         }
-        
+
         $settings = SendcloudPlugin::getInstance()->getSettings();
+        $statusMapping = SendcloudPlugin::getInstance()->statusMapping->getStatusMappingByStoreId($order->getStore()->id);
         
-        if (!in_array($orderStatus->handle, $settings->orderStatusesToPush, true) && !in_array($orderStatus->handle, $settings->orderStatusesToCreateLabel, true)) {
+        if (!in_array($orderStatus->handle, $statusMapping->orderStatusesToPush, true) && !in_array($orderStatus->handle, $statusMapping->orderStatusesToCreateLabel, true)) {
             return;
         }
         
@@ -220,7 +222,7 @@ class OrderSync extends Component
             return;
         }
         
-        $createLabel = in_array($orderStatus->handle, $settings->orderStatusesToCreateLabel, true);
+        $createLabel = in_array($orderStatus->handle, $statusMapping->orderStatusesToCreateLabel, true);
 
         $job = new PushOrder([
             'orderId' => $order->getId(),
@@ -251,12 +253,13 @@ class OrderSync extends Component
                 return false;
             }
 
-            $client = $this->sendcloudApi->getClient();
+            $store = $order->getStore();
+            $client = $this->sendcloudApi->getClient($store->id);
 
             $parcel = null;
             if ($status->isPushed()) {
                 try {
-                    $parcel = $client->updateParcel($status->parcelId, $order);
+                    $parcel = $client->updateParcel($status, $order);
                 } catch (SendcloudRequestException $sendcloudRequestException) {
                     if ($sendcloudRequestException->getSendCloudCode() != 404) {
                         throw $sendcloudRequestException;
@@ -300,7 +303,8 @@ class OrderSync extends Component
         $status = $this->getOrCreateOrderSyncStatus($order);
 
         try {
-            $client = $this->sendcloudApi->getClient();
+            $store = $order->getStore();
+            $client = $this->sendcloudApi->getClient($store->id);
             if (!$status->isPushed() || $status->isLabelCreated()) {
                 return false;
             }
@@ -341,8 +345,9 @@ class OrderSync extends Component
             return false;
         }
 
-        $client = $this->sendcloudApi->getClient();
-        if (!isset($client->getShippingMethods()[$order->getShippingMethod()->getName()])) {
+        $store = $order->getStore();
+        $client = $this->sendcloudApi->getClient($store->id);
+        if (!isset($client->getShippingMethods($store->id)[$order->getShippingMethod()->getName()])) {
             SendcloudPlugin::getInstance()->log("Sendcloud shipping method not found", Logger::LEVEL_WARNING);
             return false;
         }

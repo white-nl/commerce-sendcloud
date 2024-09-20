@@ -3,469 +3,531 @@
 namespace white\commerce\sendcloud\models;
 
 use DateTimeImmutable;
+use white\commerce\sendcloud\client\WebhookParcelNormalizer;
+use white\commerce\sendcloud\enums\LabelFormat;
+use white\commerce\sendcloud\enums\ParcelStatus;
+use white\commerce\sendcloud\enums\ShipmentType;
+use yii\base\Arrayable;
+use yii\base\ArrayableTrait;
 
-final class Parcel
+class Parcel implements Arrayable
 {
-    /**
-     * @var int
-     */
-    public const LABEL_FORMAT_A6 = 1;
+    use ArrayableTrait {
+        toArray as traitToArray;
+    }
+
+    private ?int $id = null;
+
+    private string $name;
+
+    private ?int $contract = null;
+
+    private ?Address $address = null;
+
+    private bool $requestLabel = false;
+
+    private string $email;
+
+    private ShippingMethod $shippingMethod;
+
+    private string $weight;
+
+    private string $orderNumber;
+
+    private ?int $insuredValue = null;
+
+    private string $totalOrderValueCurrency;
+
+    private string $totalOrderValue;
+
+    private int $quantity;
+
+    private string $shippingMethodCheckoutName;
+
+    private string $toPostNumber = '';
+
+    private ?int $senderAddress = null;
+
+    private string $customsInvoiceNr = '';
+
+    private ShipmentType $customsShipmentType = ShipmentType::CommercialGoods;
+
+    private ?string $externalReference = null;
+
+    private ?int $toServicePoint = null;
+
+    private ?int $totalInsuredValue = null;
+
+    private ?string $shipmentUuid = null;
 
     /**
-     * @var int
+     * @var ParcelItem[]
      */
-    public const LABEL_FORMAT_A4_TOP_LEFT = 2;
+    private array $parcelItems = [];
 
-    /**
-     * @var int
-     */
-    public const LABEL_FORMAT_A4_TOP_RIGHT = 3;
+    private bool $isReturn = false;
 
-    /**
-     * @var int
-     */
-    public const LABEL_FORMAT_A4_BOTTOM_LEFT = 4;
+    private string $length;
 
-    /**
-     * @var int
-     */
-    public const LABEL_FORMAT_A4_BOTTOM_RIGHT = 5;
+    private string $width;
 
-    /**
-     * @var int[]
-     */
-    public const LABEL_FORMATS = [
-        self::LABEL_FORMAT_A6,
-        self::LABEL_FORMAT_A4_TOP_LEFT,
-        self::LABEL_FORMAT_A4_TOP_RIGHT,
-        self::LABEL_FORMAT_A4_BOTTOM_LEFT,
-        self::LABEL_FORMAT_A4_BOTTOM_RIGHT,
-    ];
+    private string $height;
 
-    // Obtained from https://panel.sendcloud.sc/api/v2/parcels/statuses (with API auth)
-    /**
-     * @var int
-     */
-    public const STATUS_ANNOUNCED = 1;
+    private bool $requestLabelAsync = false;
 
-    /**
-     * @var int
-     */
-    public const STATUS_EN_ROUTE_TO_SORTING_CENTER = 3;
-
-    /**
-     * @var int
-     */
-    public const STATUS_DELIVERY_DELAYED = 4;
-
-    /**
-     * @var int
-     */
-    public const STATUS_SORTED = 5;
-
-    /**
-     * @var int
-     */
-    public const STATUS_NOT_SORTED = 6;
-
-    /**
-     * @var int
-     */
-    public const STATUS_BEING_SORTED = 7;
-
-    /**
-     * @var int
-     */
-    public const STATUS_DELIVERY_ATTEMPT_FAILED = 8;
-
-    /**
-     * @var int
-     */
-    public const STATUS_DELIVERED = 11;
-
-    /**
-     * @var int
-     */
-    public const STATUS_AWAITING_CUSTOMER_PICKUP = 12;
-
-    /**
-     * @var int
-     */
-    public const STATUS_ANNOUNCED_NOT_COLLECTED = 13;
-
-    /**
-     * @var int
-     */
-    public const STATUS_ERROR_COLLECTING = 15;
-
-    /**
-     * @var int
-     */
-    public const STATUS_SHIPMENT_PICKED_UP_BY_DRIVER = 22;
-
-    /**
-     * @var int
-     */
-    public const STATUS_UNABLE_TO_DELIVER = 80;
-
-    /**
-     * @var int
-     */
-    public const STATUS_PARCEL_EN_ROUTE = 91;
-
-    /**
-     * @var int
-     */
-    public const STATUS_DRIVER_EN_ROUTE = 92;
-
-    /**
-     * @var int
-     */
-    public const STATUS_SHIPMENT_COLLECTED_BY_CUSTOMER = 93;
-
-    /**
-     * @var int
-     */
-    public const STATUS_NO_LABEL = 999;
-
-    /**
-     * @var int
-     */
-    public const STATUS_READY_TO_SEND = 1000;
-
-    /**
-     * @var int
-     */
-    public const STATUS_BEING_ANNOUNCED = 1001;
-
-    /**
-     * @var int
-     */
-    public const STATUS_ANNOUNCEMENT_FAILED = 1002;
-
-    /**
-     * @var int
-     */
-    public const STATUS_UNKNOWN_STATUS = 1337;
-
-    /**
-     * @var int
-     */
-    public const STATUS_CANCELLED_UPSTREAM = 1998;
-
-    /**
-     * @var int
-     */
-    public const STATUS_CANCELLATION_REQUESTED = 1999;
-
-    /**
-     * @var int
-     */
-    public const STATUS_CANCELLED = 2000;
-
-    /**
-     * @var int
-     */
-    public const STATUS_SUBMITTING_CANCELLATION_REQUEST = 2001;
-
-    /**
-     * @var int[]
-     */
-    public const STATUSES = [
-        self::STATUS_ANNOUNCED,
-        self::STATUS_EN_ROUTE_TO_SORTING_CENTER,
-        self::STATUS_DELIVERY_DELAYED,
-        self::STATUS_SORTED,
-        self::STATUS_NOT_SORTED,
-        self::STATUS_BEING_SORTED,
-        self::STATUS_DELIVERY_ATTEMPT_FAILED,
-        self::STATUS_DELIVERED,
-        self::STATUS_AWAITING_CUSTOMER_PICKUP,
-        self::STATUS_ANNOUNCED_NOT_COLLECTED,
-        self::STATUS_ERROR_COLLECTING,
-        self::STATUS_SHIPMENT_PICKED_UP_BY_DRIVER,
-        self::STATUS_UNABLE_TO_DELIVER,
-        self::STATUS_PARCEL_EN_ROUTE,
-        self::STATUS_DRIVER_EN_ROUTE,
-        self::STATUS_SHIPMENT_COLLECTED_BY_CUSTOMER,
-        self::STATUS_NO_LABEL,
-        self::STATUS_READY_TO_SEND,
-        self::STATUS_BEING_ANNOUNCED,
-        self::STATUS_ANNOUNCEMENT_FAILED,
-        self::STATUS_UNKNOWN_STATUS,
-        self::STATUS_CANCELLED_UPSTREAM,
-        self::STATUS_CANCELLATION_REQUESTED,
-        self::STATUS_CANCELLED,
-        self::STATUS_SUBMITTING_CANCELLATION_REQUEST,
-    ];
+    private ?Address $returnSenderAddress = null;
 
     private ?\DateTimeImmutable $created = null;
 
     private ?string $trackingNumber = null;
 
-    private ?string $statusMessage = null;
+    private ?ParcelStatus $parcelStatus = null;
 
-    private ?int $statusId = null;
-
-    private ?int $id = null;
+    private ?string $carrier = null;
 
     /** @var string[]|null */
     public ?array $labelUrls;
 
     private ?string $trackingUrl = null;
 
-    private ?Address $address = null;
-
-    private ?int $weight = null;
-
-    private ?string $carrier = null;
-
-    private ?string $orderNumber = null;
-
-    private ?int $shippingMethodId = null;
-
-    private ?int $servicePointId = null;
-
-    /**
-     * @return DateTimeImmutable
-     */
-    public function getCreated(): DateTimeImmutable
-    {
-        return $this->created;
-    }
-
-    /**
-     * @param DateTimeImmutable $created
-     * @return void
-     */
-    public function setCreated(DateTimeImmutable $created): void
-    {
-        $this->created = $created;
-    }
-
-    /**
-     * @return string|null
-     */
-    public function getTrackingNumber(): ?string
-    {
-        return $this->trackingNumber;
-    }
-
-    /**
-     * @param string $trackingNumber
-     * @return void
-     */
-    public function setTrackingNumber(string $trackingNumber): void
-    {
-        $this->trackingNumber = $trackingNumber;
-    }
-
-    /**
-     * @return string
-     */
-    public function getStatusMessage(): string
-    {
-        return $this->statusMessage;
-    }
-
-    /**
-     * @param string $statusMessage
-     * @return void
-     */
-    public function setStatusMessage(string $statusMessage): void
-    {
-        $this->statusMessage = $statusMessage;
-    }
-
-    /**
-     * @return int
-     */
-    public function getStatusId(): int
-    {
-        return $this->statusId;
-    }
-
-    /**
-     * @param int $statusId
-     * @return void
-     */
-    public function setStatusId(int $statusId): void
-    {
-        $this->statusId = $statusId;
-    }
-
-    /**
-     * @return int
-     */
-    public function getId(): int
+    public function getId(): ?int
     {
         return $this->id;
     }
 
-    /**
-     * @param int $id
-     * @return void
-     */
-    public function setId(int $id): void
+    public function setId(?int $id): void
     {
         $this->id = $id;
     }
 
-    /**
-     * @param int $format
-     * @return string|null
-     */
-    public function getLabelUrl(int $format): ?string
+    public function getName(): string
     {
-        return $this->labelUrls[$format] ?? null;
+        return $this->getAddress()->getName();
     }
 
-    /**
-     * @return string|null
-     */
-    public function getTrackingUrl(): ?string
+    public function getContract(): ?int
     {
-        return $this->trackingUrl;
+        return $this->contract;
     }
 
-    /**
-     * @param string|null $trackingUrl
-     * @return void
-     */
-    public function setTrackingUrl(?string $trackingUrl): void
+    public function setContract(?int $contract): void
     {
-        $this->trackingUrl = $trackingUrl;
+        $this->contract = $contract;
     }
 
-    /**
-     * @return Address
-     */
-    public function getAddress(): Address
+    public function getAddress(): ?Address
     {
         return $this->address;
     }
 
-    /**
-     * @param Address $address
-     * @return void
-     */
-    public function setAddress(Address $address): void
+    public function setAddress(?Address $address): void
     {
         $this->address = $address;
     }
 
-    /**
-     * @return int
-     */
-    public function getWeight(): int
+    public function isRequestLabel(): bool
+    {
+        return $this->requestLabel;
+    }
+
+    public function setRequestLabel(bool $requestLabel): void
+    {
+        $this->requestLabel = $requestLabel;
+    }
+
+    public function getEmail(): string
+    {
+        return $this->email;
+    }
+
+    public function setEmail(string $email): void
+    {
+        $this->email = $email;
+    }
+
+    public function getShippingMethod(): ShippingMethod
+    {
+        return $this->shippingMethod;
+    }
+
+    public function setShippingMethod(ShippingMethod $shippingMethod): void
+    {
+        $this->shippingMethod = $shippingMethod;
+    }
+
+    public function getWeight(): string
     {
         return $this->weight;
     }
 
-    /**
-     * @param int $weight
-     * @return void
-     */
-    public function setWeight(int $weight): void
+    public function setWeight(string $weight): void
     {
-        $this->weight = $weight;
+        $weight = $weight ?: 0.001;
+        $this->weight = number_format($weight, 3);
     }
 
-    /**
-     * @return string|null
-     */
-    public function getCarrier(): ?string
-    {
-        return $this->carrier;
-    }
-
-    /**
-     * @param string|null $carrier
-     * @return void
-     */
-    public function setCarrier(?string $carrier): void
-    {
-        $this->carrier = $carrier;
-    }
-
-    /**
-     * @return string|null
-     */
-    public function getOrderNumber(): ?string
+    public function getOrderNumber(): string
     {
         return $this->orderNumber;
     }
 
-    /**
-     * @param string $orderNumber
-     * @return void
-     */
     public function setOrderNumber(string $orderNumber): void
     {
         $this->orderNumber = $orderNumber;
     }
 
-    /**
-     * @return int|null
-     */
-    public function getShippingMethodId(): ?int
+    public function getInsuredValue(): ?int
     {
-        return $this->shippingMethodId;
+        return $this->insuredValue;
     }
 
-    /**
-     * @param int|null $shippingMethodId
-     * @return void
-     */
-    public function setShippingMethodId(?int $shippingMethodId): void
+    public function setInsuredValue(?int $insuredValue): void
     {
-        $this->shippingMethodId = $shippingMethodId;
+        $this->insuredValue = $insuredValue;
     }
 
-    /**
-     * @return int|null
-     */
-    public function getServicePointId(): ?int
+    public function getTotalOrderValueCurrency(): string
     {
-        return $this->servicePointId;
+        return $this->totalOrderValueCurrency;
     }
 
-    /**
-     * @param int|null $servicePointId
-     * @return void
-     */
-    public function setServicePointId(?int $servicePointId): void
+    public function setTotalOrderValueCurrency(string $totalOrderValueCurrency): void
     {
-        $this->servicePointId = $servicePointId;
+        $this->totalOrderValueCurrency = $totalOrderValueCurrency;
     }
 
-    /**
-     * @return string
-     */
-    public function getStatus(): string
+    public function getTotalOrderValue(): string
     {
-        return $this->getStatusId() . ': ' . $this->getStatusMessage();
+        return $this->totalOrderValue;
     }
 
-    /**
-     * @return array
-     */
-    public function toArray(): array
+    public function setTotalOrderValue(string $totalOrderValue): void
+    {
+        $this->totalOrderValue = $totalOrderValue;
+    }
+
+    public function getQuantity(): int
+    {
+        return $this->quantity;
+    }
+
+    public function setQuantity(int $quantity): void
+    {
+        $this->quantity = $quantity;
+    }
+
+    public function getShippingMethodCheckoutName(): string
+    {
+        return $this->shippingMethodCheckoutName;
+    }
+
+    public function setShippingMethodCheckoutName(string $shippingMethodCheckoutName): void
+    {
+        $this->shippingMethodCheckoutName = $shippingMethodCheckoutName;
+    }
+
+    public function getToPostNumber(): string
+    {
+        return $this->toPostNumber;
+    }
+
+    public function setToPostNumber(string $toPostNumber): void
+    {
+        $this->toPostNumber = $toPostNumber;
+    }
+
+    public function getSenderAddress(): ?int
+    {
+        return $this->senderAddress;
+    }
+
+    public function setSenderAddress(?int $senderAddress): void
+    {
+        $this->senderAddress = $senderAddress;
+    }
+
+    public function getCustomsInvoiceNr(): string
+    {
+        return $this->customsInvoiceNr;
+    }
+
+    public function setCustomsInvoiceNr(string $customsInvoiceNr): void
+    {
+        $this->customsInvoiceNr = $customsInvoiceNr;
+    }
+
+    public function getCustomsShipmentType(): ShipmentType
+    {
+        return $this->customsShipmentType;
+    }
+
+    public function setCustomsShipmentType(ShipmentType $customsShipmentType): void
+    {
+        $this->customsShipmentType = $customsShipmentType;
+    }
+
+    public function getExternalReference(): string
+    {
+        return $this->externalReference;
+    }
+
+    public function setExternalReference(string $externalReference): void
+    {
+        $this->externalReference = $externalReference;
+    }
+
+    public function getToServicePoint(): ?int
+    {
+        return $this->toServicePoint;
+    }
+
+    public function setToServicePoint(?int $toServicePoint): void
+    {
+        $this->toServicePoint = $toServicePoint;
+    }
+
+    public function getTotalInsuredValue(): ?int
+    {
+        return $this->totalInsuredValue;
+    }
+
+    public function setTotalInsuredValue(?int $totalInsuredValue): void
+    {
+        $this->totalInsuredValue = $totalInsuredValue;
+    }
+
+    public function getShipmentUuid(): ?string
+    {
+        return $this->shipmentUuid;
+    }
+
+    public function setShipmentUuid(?string $shipmentUuid): void
+    {
+        $this->shipmentUuid = $shipmentUuid;
+    }
+
+    public function getParcelItems(): array
+    {
+        return $this->parcelItems;
+    }
+
+    public function setParcelItems(array $parcelItems): void
+    {
+        $this->parcelItems = $parcelItems;
+    }
+
+    public function isReturn(): bool
+    {
+        return $this->isReturn;
+    }
+
+    public function setIsReturn(bool $isReturn): void
+    {
+        $this->isReturn = $isReturn;
+    }
+
+    public function getLength(): string
+    {
+        return $this->length;
+    }
+
+    public function setLength(string $length): void
+    {
+        $this->length = $length;
+    }
+
+    public function getWidth(): string
+    {
+        return $this->width;
+    }
+
+    public function setWidth(string $width): void
+    {
+        $this->width = $width;
+    }
+
+    public function getHeight(): string
+    {
+        return $this->height;
+    }
+
+    public function setHeight(string $height): void
+    {
+        $this->height = $height;
+    }
+
+    public function isRequestLabelAsync(): bool
+    {
+        return $this->requestLabelAsync;
+    }
+
+    public function setRequestLabelAsync(bool $requestLabelAsync): void
+    {
+        $this->requestLabelAsync = $requestLabelAsync;
+    }
+
+    public function getReturnSenderAddress(): ?Address
+    {
+        return $this->returnSenderAddress;
+    }
+
+    public function setReturnSenderAddress(?Address $returnSenderAddress): void
+    {
+        $this->returnSenderAddress = $returnSenderAddress;
+    }
+
+    public function getCreated(): ?DateTimeImmutable
+    {
+        return $this->created;
+    }
+
+    public function setCreated(?DateTimeImmutable $created): void
+    {
+        $this->created = $created;
+    }
+
+    public function getTrackingNumber(): ?string
+    {
+        return $this->trackingNumber;
+    }
+
+    public function setTrackingNumber(?string $trackingNumber): void
+    {
+        $this->trackingNumber = $trackingNumber;
+    }
+
+    public function getParcelStatus(): ?ParcelStatus
+    {
+        return $this->parcelStatus;
+    }
+
+    public function setParcelStatus(?ParcelStatus $parcelStatus): void
+    {
+        $this->parcelStatus = $parcelStatus;
+    }
+
+    public function getLabelUrls(): ?array
+    {
+        return $this->labelUrls;
+    }
+
+    public function getLabelUrl(LabelFormat $format): ?string
+    {
+        return $this->labelUrls[$format->name] ?? null;
+    }
+
+    public function setLabelUrls(?array $labelUrls): void
+    {
+        $this->labelUrls = $labelUrls;
+    }
+
+    public function getTrackingUrl(): ?string
+    {
+        return $this->trackingUrl;
+    }
+
+    public function setTrackingUrl(?string $trackingUrl): void
+    {
+        $this->trackingUrl = $trackingUrl;
+    }
+
+    public function getCarrier(): ?string
+    {
+        return $this->carrier;
+    }
+
+    public function setCarrier(?string $carrier): void
+    {
+        $this->carrier = $carrier;
+    }
+
+    public static function fromData(array $data): self
+    {
+        $labelUrls = [];
+        foreach (LabelFormat::cases() as $format) {
+            $labelUrl = $format->getUrl($data);
+            if ($labelUrl) {
+                $labelUrls[$format->name] = $labelUrl;
+            }
+        }
+
+        $parcelItems = [];
+        if (isset($data['parcel_items'])) {
+            foreach ($data['parcel_items'] as $parcel_item) {
+                $parcelItemData = [
+                    'hsCode' => $parcel_item['hs_code'],
+                    'weight' => $parcel_item['weight'],
+                    'quantity' => $parcel_item['quantity'],
+                    'description' => $parcel_item['description'],
+                    'originCountry' => $parcel_item['origin_country'],
+                    'value' => $parcel_item['value'],
+                    'sku' => $parcel_item['sku'],
+                    'productId' => $parcel_item['product_id'],
+                    'properties' => $parcel_item['properties'],
+                    'itemId' => $parcel_item['item_id'],
+                    'returnReason' => $parcel_item['return_reason'],
+                    'returnMessage' => $parcel_item['return_message'],
+                    'midCode' => $parcel_item['mid_code'] ?? null,
+                    'materialContent' => $parcel_item['material_content'] ?? null,
+                    'intendedUse' => $parcel_item['intended_use'] ?? null,
+                ];
+                $parcelItems[] = \Craft::createObject(ParcelItem::class, $parcelItemData);
+            }
+        }
+
+        $errors = [];
+        if (isset($data['errors'])) {
+            foreach ($data['errors'] as $key => $error) {
+                $errors[$key][] = $error;
+            }
+        }
+
+        $parcel = new Parcel();
+        $parcel->setId($data['id']);
+        $parcel->setParcelStatus(ParcelStatus::tryFrom($data['status']['id']));
+        $parcel->setEmail($data['email']);
+        $parcel->setCreated(new DateTimeImmutable($data['date_created']));
+        $parcel->setTrackingNumber($data['tracking_number']);
+        $parcel->setWeight($data['weight']);
+        $parcel->setLabelUrls($labelUrls);
+        $parcel->setTrackingUrl($data['tracking_url'] ?? null);
+        $parcel->setCarrier($data['carrier']['code']);
+        $parcel->setOrderNumber($data['order_number']);
+        $parcel->setToServicePoint($data['to_service_point']);
+        $parcel->setCustomsInvoiceNr($data['customs_invoice_nr']);
+        $parcel->setCustomsShipmentType(ShipmentType::tryFrom($data['customs_shipment_type']));
+        $parcel->setParcelItems($parcelItems);
+        $address = Address::fromParcelData($data);
+        $parcel->setAddress($address);
+
+        return $parcel;
+    }
+
+    public function fields()
     {
         return [
-            'address' => $this->getAddress()->toArray(),
-            'carrier' => $this->getCarrier(),
-            'created' => $this->getCreated()->format(DATE_ATOM),
-            'id' => $this->getId(),
-            'labels' => array_map(fn($format) => $this->getLabelUrl($format), self::LABEL_FORMATS),
-            'orderNumber' => $this->getOrderNumber(),
-            'servicePointId' => $this->getServicePointId(),
-            'shippingMethodId' => $this->getShippingMethodId(),
-            'statusId' => $this->getStatusId(),
-            'statusMessage' => $this->getStatusMessage(),
-            'trackingNumber' => $this->getTrackingNumber(),
-            'trackingUrl' => $this->getTrackingUrl(),
-            'weight' => $this->getWeight(),
+            'name' => fn(Parcel $parcel) => $parcel->getName(),
+            'company_name' => fn(Parcel $parcel) => $parcel->getAddress()->getCompanyName(),
+            'address' => fn(Parcel $parcel) => $parcel->getAddress()->getAddress(),
+            'address_2' => fn(Parcel $parcel) => $parcel->getAddress()->getAddress2(),
+            'city' => fn(Parcel $parcel) => $parcel->getAddress()->getCity(),
+            'postal_code' => fn(Parcel $parcel) => $parcel->getAddress()->getPostalCode(),
+            'country' => fn(Parcel $parcel) => $parcel->getAddress()->getCountry(),
+            'country_state' => fn(Parcel $parcel) => $parcel->getAddress()->getCountryState(),
+            'telephone' => fn(Parcel $parcel) => $parcel->getAddress()->getTelephone(),
+            'email',
+            'to_service_point' => 'toServicePoint',
+            'to_post_number' => 'toPostNumber',
+            'order_number' => 'orderNumber',
+            'weight',
+            'customs_invoice_nr' => 'customsInvoiceNr',
+            'customs_shipment_type' => fn(Parcel $parcel) => $parcel->getCustomsShipmentType()->value,
+            'parcel_items' => fn(Parcel $parcel) => $parcel->getParcelItems(),
+            'total_order_value_currency' => 'totalOrderValueCurrency',
+            'total_order_value' => 'totalOrderValue',
+            'shipment' => fn(Parcel $parcel) => ['id' => $parcel->getShippingMethod()->getId()],
+            'shipping_method_checkout_name' => 'shippingMethodCheckoutName',
+            'request_label' => 'requestLabel',
         ];
     }
 }

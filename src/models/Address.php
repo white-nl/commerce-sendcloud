@@ -2,113 +2,169 @@
 
 namespace white\commerce\sendcloud\models;
 
-final class Address extends \JouwWeb\Sendcloud\Model\Address implements \Stringable
+use yii\base\Arrayable;
+use yii\base\ArrayableTrait;
+
+class Address implements Arrayable
 {
+    use ArrayableTrait {
+        toArray as traitToArray;
+    }
+
+    public static function fromParcelData(array $data): self
+    {
+        return new self(
+            $data['name'],
+            $data['company_name'] ?? null,
+            $data['address'],
+            $data['address_2'],
+            $data['address_divided']['house_number'] ?? null,
+            $data['city'],
+            $data['postal_code'],
+            $data['telephone'] ?? null,
+            $data['country']['iso_2'],
+            $data['country_state'] ?? null,
+        );
+    }
+
     /**
-     * @param string $name
-     * @return void
+     * @param string $name Name of the recipient
+     * @param string|null $companyName Company name of the recipient the parcel will be shipped to
+     * @param string $address Address of the recipient
+     * @param string|null $address2 Additional address information, e.g. 2nd level
+     * @param string|null $houseNumber House number of the recipient
+     * @param string $city City of the recipient
+     * @param string $postalCode Zip code of the recipient
+     * @param string|null $telephone Phone number of the recipient
+     * @param string $country Country of the recipient
+     * @param string|null $countryState Code of the state (e.g. NY for New York) or province (e.g. RM for Rome). Destinations that require this field are USA, Canada, Italy and Australia. Errors related to this field will mention the to_state field.
      */
+    public function __construct(
+        protected string $name,
+        protected ?string $companyName = null,
+        protected string $address,
+        protected string $address2 = '',
+        protected ?string $houseNumber = null,
+        protected string $city,
+        protected string $postalCode,
+        protected ?string $telephone = null,
+        protected string $country,
+        protected ?string $countryState = null,
+    ) {
+    }
+
+    public function getName(): string
+    {
+        return $this->name;
+    }
+
     public function setName(string $name): void
     {
         $this->name = $name;
     }
 
-    /**
-     * @param string|null $companyName
-     * @return void
-     */
+    public function getCompanyName(): ?string
+    {
+        return $this->companyName;
+    }
+
     public function setCompanyName(?string $companyName): void
     {
         $this->companyName = $companyName;
     }
 
-    /**
-     * @param string|null $addressLine1
-     * @return void
-     */
-    public function setAddressLine1(?string $addressLine1): void
+    public function getAddress(): string
     {
-        $this->addressLine1 = $addressLine1;
+        return $this->address;
     }
 
-    /**
-     * @param string $street
-     * @return void
-     */
-    public function setStreet(string $street): void
+    public function setAddress(string $address): void
     {
-        $this->street = $street;
+        $this->address = $address;
     }
 
-    /**
-     * @param ?string $houseNumber
-     * @return void
-     */
-    public function setHouseNumber(?string $houseNumber = null): void
+    public function getAddress2(): ?string
+    {
+        return $this->address2;
+    }
+
+    public function setAddress2(?string $address2): void
+    {
+        $this->address2 = $address2;
+    }
+
+    public function getHouseNumber(): ?string
+    {
+        return $this->houseNumber;
+    }
+
+    public function setHouseNumber(?string $houseNumber): void
     {
         $this->houseNumber = $houseNumber;
     }
 
-    /**
-     * @param string $city
-     * @return void
-     */
+    public function getCity(): string
+    {
+        return $this->city;
+    }
+
     public function setCity(string $city): void
     {
         $this->city = $city;
     }
 
-    /**
-     * @param string $postalCode
-     * @return void
-     */
+    public function getPostalCode(): string
+    {
+        return $this->postalCode;
+    }
+
     public function setPostalCode(string $postalCode): void
     {
         $this->postalCode = $postalCode;
     }
 
-    /**
-     * @param string $countryCode
-     * @return void
-     */
-    public function setCountryCode(string $countryCode): void
+    public function getTelephone(): ?string
     {
-        $this->countryCode = $countryCode;
+        return $this->telephone;
     }
 
-    /**
-     * @param string $emailAddress
-     * @return void
-     */
-    public function setEmailAddress(string $emailAddress): void
+    public function setTelephone(?string $telephone): void
     {
-        $this->emailAddress = $emailAddress;
+        $this->telephone = $telephone;
     }
 
-    /**
-     * @param null|string $phoneNumber
-     * @return void
-     */
-    public function setPhoneNumber(?string $phoneNumber = null): void
+    public function getCountry(): string
     {
-        $this->phoneNumber = $phoneNumber;
+        return $this->country;
     }
 
-    /**
-     * @param null|string $addressLine2
-     * @Return void
-     */
-    public function setAddressLine2(?string $addressLine2 = null): void
+    public function setCountry(string $country): void
     {
-        $this->addressLine2 = $addressLine2;
+        $this->country = $country;
     }
 
-    /**
-     * @param null|string $countryStateCode
-     * @return void
-     */
-    public function setCountryStateCode(?string $countryStateCode): void
+    public function getCountryState(): ?string
     {
-        $this->countryStateCode = $countryStateCode;
+        return $this->countryState;
+    }
+
+    public function setCountryState(?string $countryState): void
+    {
+        $this->countryState = $countryState;
+    }
+
+    public function fields()
+    {
+        return [
+            'name',
+            'address',
+            'address_2' => 'address2',
+            'city',
+            'company_name' => 'companyName',
+            'country' => 'country',
+            'postal_code' => 'postalCode',
+            'telephone' => 'telephone',
+            'country_state' => 'countryState',
+        ];
     }
 }

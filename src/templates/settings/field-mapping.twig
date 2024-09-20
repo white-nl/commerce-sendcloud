@@ -1,0 +1,48 @@
+{% extends "commerce-sendcloud/_layouts/settings" %}
+
+{% set selectedTab = 'settings' %}
+{% set selectedItem = 'field-mapping' %}
+
+{% import "_includes/forms" as forms %}
+
+{% block content %}
+    <h2>{{ "Field Mapping"|t('commerce-sendcloud') }}</h2>
+
+    <form action="" method="post" accept-charset="UTF-8" data-saveshortcut>
+        {{ actionInput('commerce-sendcloud/cp/settings/save-field-mapping-settings') }}
+        {{ redirectInput('commerce-sendcloud/settings/field-mapping') }}
+        {{ csrfInput() }}
+        {% namespace 'settings' %}
+            <h3>{{ "International shipping"|t('commerce-sendcloud') }}</h3>
+            {{ forms.selectField({
+                label: "HS Code field mapping"|t('commerce-sendcloud'),
+                instructions: "Select the Craft Commerce product field containing the HS product codes. HS codes are required for shipping outside the EU."|t('commerce-sendcloud'),
+                name: "hsCodeFieldHandle",
+                options: settings.getAvailableTextFields(),
+                value: settings.hsCodeFieldHandle,
+                errors: settings.getErrors('hsCodeFieldHandle')
+            }) }}
+
+            {{ forms.selectField({
+                label: "Country of Origin field mapping"|t('commerce-sendcloud'),
+                instructions: "Select the Craft Commerce product field containing the country of Origin. Use only ISO2 country codes!"|t('commerce-sendcloud'),
+                name: "originCountryFieldHandle",
+                options: settings.getAvailableTextFields(),
+                value: settings.originCountryFieldHandle,
+                errors: settings.getErrors('originCountryFieldHandle'),
+            }) }}
+
+            <h3>{{ "Address fields"|t('commerce-sendcloud') }}</h3>
+            {{ forms.selectField({
+                label: "Phone number field"|t('commerce-sendcloud'),
+                instructions: "Select the Craft field linked to the Address element containing the phone number"|t('commerce-sendcloud'),
+                name: "phoneNumberFieldHandle",
+                options: settings.getAvailableTextFields(),
+                value: settings.phoneNumberFieldHandle,
+                errors: settings.getErrors('phoneNumberFieldHandle'),
+            }) }}
+        {% endnamespace %}
+
+        <input type="submit" class="btn submit" value="{{ "Save"|t('commerce-sendcloud') }}">
+    </form>
+{% endblock %}

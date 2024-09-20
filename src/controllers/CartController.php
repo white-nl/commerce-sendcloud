@@ -53,7 +53,7 @@ class CartController extends Controller
             return [
                 'success' => true,
             ];
-        } catch (\Exception) {
+        } catch (\Exception $e) {
             return [
                 'success' => false,
             ];

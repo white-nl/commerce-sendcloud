@@ -27,7 +27,9 @@ trait Routes
             static function(RegisterUrlRulesEvent $event): void {
                 $event->rules['commerce-sendcloud'] = 'commerce-sendcloud/cp/store-settings/index'; // Redirects to the first store
                 // Settings
-                $event->rules['commerce-sendcloud/settings'] = 'commerce-sendcloud/cp/settings/index';
+                $event->rules['commerce-sendcloud/settings/field-mapping'] = 'commerce-sendcloud/cp/settings/field-mapping';
+                $event->rules['commerce-sendcloud/settings/status-mapping'] = 'commerce-sendcloud/cp/status-mapping/index'; // Redirects to the first store
+                $event->rules['commerce-sendcloud/settings/<storeHandle:{handle}>/status-mapping'] = 'commerce-sendcloud/cp/status-mapping/status-mapping';
 
                 // Store settings
                 $event->rules['commerce-sendcloud/store-settings'] = 'commerce-sendcloud/cp/store-settings/index'; // Redirects to the first store

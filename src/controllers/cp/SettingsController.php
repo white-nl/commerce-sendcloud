@@ -36,187 +36,49 @@ class SettingsController extends Controller
     /**
      * @return Response
      */
-    public function actionIndex(): Response
+    public function actionFieldMapping(): Response
     {
-        $integrationService = SendcloudPlugin::getInstance()->integrations;
-        
         $settings = SendcloudPlugin::getInstance()->getSettings();
         $settings->validate();
 
-        return $this->renderTemplate('commerce-sendcloud/_settings', [
-            'plugin' => SendcloudPlugin::getInstance(),
+        return $this->renderTemplate('commerce-sendcloud/settings/field-mapping', [
             'settings' => $settings,
-            'allowAdminChanges' => Craft::$app->getUser()->getIsAdmin() && Craft::$app->getConfig()->getGeneral()->allowAdminChanges,
-            'integrationsBySiteId' => ArrayHelper::index($integrationService->getAllIntegrations(), 'siteId'),
         ]);
     }
 
-    /**
-     * @return Response
-     * @throws NotFoundHttpException
-     * @throws MissingComponentException
-     * @throws Exception
-     * @throws BadRequestHttpException
-     * @throws \Exception
-     */
-    public function actionConnect(): Response
+    public function actionSaveFieldMappingSettings(): ?Response
     {
-        $siteId = Craft::$app->getRequest()->getRequiredBodyParam('siteId');
-        $site = Craft::$app->getSites()->getSiteById($siteId);
-        if (!$site) {
-            throw new NotFoundHttpException('Site not found.');
-        }
-        
-        $generalConfig = Craft::$app->getConfig()->getGeneral();
-        $integrationService = SendcloudPlugin::getInstance()->integrations;
-        
-        if ($integrationService->getIntegrationBySiteId($siteId)) {
-            Craft::$app->getSession()->setError(Craft::t('commerce-sendcloud', "Integration for the chosen website already exists."));
-            
-            return $this->redirectToPostedUrl();
-        }
-        
-        $integration = new Integration();
-        $integration->siteId = $siteId;
-        $integration->token = StringHelper::randomString(16);
-        
-        if (!$integrationService->saveIntegration($integration)) {
-            throw new \Exception("Could not save the integration.");
-        }
-        
-        // Build the webhook URL, preferring the path param to avoid potential webserver misconfiguration problems
-        $webhookPath = 'commerce-sendcloud/webhook';
-        $webhookArgs = [
-            'id' => $integration->id,
-            'token' => $integration->token,
-        ];
-        $webhookUrl = $generalConfig->pathParam
-            ? UrlHelper::cpUrl('', array_merge([$generalConfig->pathParam => $webhookPath], $webhookArgs))
-            : UrlHelper::cpUrl($webhookPath, $webhookArgs);
-        
-        
-        $url = $this->sendcloudConnectUrl;
-        $url .= '?' . http_build_query([
-            'url_webshop' => $site->getBaseUrl(),
-            'webhook_url' => $webhookUrl,
-            'shop_name' => Craft::$app->getSystemName() === $site->name ? $site->name : sprintf('%s: %s', Craft::$app->getSystemName(), $site->name),
-        ]);
+        $this->requirePostRequest();
 
-        return $this->redirect($url);
-    }
+        $params = $this->request->getBodyParams();
+        $data = $params['settings'];
 
-    /**
-     * @param int $siteId
-     * @return Response
-     */
-    public function actionGetIntegrationStatus(int $siteId): Response
-    {
-        $integrationService = SendcloudPlugin::getInstance()->integrations;
-        
-        $integration = $integrationService->getIntegrationBySiteId($siteId);
-        if (!$integration) {
-            return $this->asJson([
-                'status' => 'none',
-                'statusText' => \Craft::t('commerce-sendcloud', 'Not registered'),
-            ]);
+        $settings = SendcloudPlugin::getInstance()->getSettings();
+        $settings->hsCodeFieldHandle = $data['hsCodeFieldHandle'] ?? $settings->hsCodeFieldHandle;
+        $settings->originCountryFieldHandle = $data['originCountryFieldHandle'] ?? $settings->originCountryFieldHandle;
+        $settings->phoneNumberFieldHandle = $data['phoneNumberFieldHandle'] ?? $settings->phoneNumberFieldHandle;
+
+        if (!$settings->validate()) {
+            $this->setFailFlash(Craft::t('commerce-sendcloud', 'Couldn`t save settings.'));
+            return $this->renderTemplate('commerce-sendcloud/settings/field-mapping', compact('settings'));
         }
-        
-        if (!$integration->getIsActive()) {
-            return $this->asJson([
-                'status' => 'pending',
-                'statusText' => \Craft::t('commerce-sendcloud', 'Pending'),
-            ]);
+
+        $pluginSettingsSaved = Craft::$app->getPlugins()->savePluginSettings(SendcloudPlugin::getInstance(), $settings->toArray());
+
+        if (!$pluginSettingsSaved) {
+            $this->setFailFlash(Craft::t('commerce-sendcloud', 'Couldn`t save settings.'));
+            return $this->renderTemplate('commerce-sendcloud/settings/field-mapping', compact('settings'));
         }
-        
-        // TODO: Ping the webhook
-        
-        return $this->asJson([
-            'status' => 'active',
-            'statusText' => \Craft::t('commerce-sendcloud', 'Active'),
-            'integration' => $integration->toArray(['id', 'siteId', 'publicKey', 'shopUrl', 'servicePointEnabled', 'servicePointCarriers']),
-        ]);
-    }
 
-    /**
-     * @return Response
-     * @throws BadRequestHttpException
-     * @throws MissingComponentException
-     * @throws \Throwable
-     * @throws StaleObjectException
-     */
-    public function actionDisconnect(): Response
-    {
-        $siteId = $this->request->getRequiredBodyParam('siteId');
+        $this->setSuccessFlash(Craft::t('commerce-sendcloud', 'Settings saved.'));
 
-        $integrationService = SendcloudPlugin::getInstance()->integrations;
-        
-        $integration = $integrationService->getIntegrationBySiteId($siteId);
-        if (!$integration) {
-            Craft::$app->getSession()->setError(Craft::t('commerce-sendcloud', "Integration not found."));
-            
-            return $this->redirectToPostedUrl();
-        }
-        
-        // TODO: Remove integration on the Sendcloud side
-        
-        $integrationService->deleteIntegrationById($integration->id);
-
-        Craft::$app->getSession()->setNotice(Craft::t('commerce-sendcloud', "Integration removed."));
-        
         return $this->redirectToPostedUrl();
     }
 
-    /**
-     * @return Response
-     * @throws BadRequestHttpException
-     * @throws SiteNotFoundException
-     * @throws InvalidConfigException
-     */
-    public function actionGetShippingMethods(): Response
+    public function actionOrderSync(): Response
     {
-        $siteId = $this->request->getRequiredParam('siteId');
+        $stores = CommercePlugin::getInstance()->getStores()->getAllStores();
 
-        $integrationService = SendcloudPlugin::getInstance()->integrations;
-        $sendcloudApiService = SendcloudPlugin::getInstance()->sendcloudApi;
-
-        $integration = $integrationService->getIntegrationBySiteId($siteId);
-        if (!$integration || !$integration->getIsActive()) {
-            return $this->asJson([
-                'shippingMethods' => [],
-            ]);
-        }
-        
-        $client = $sendcloudApiService->getClient($siteId);
-        $shippingMethods = $client->getShippingMethods();
-        
-        $craftShippingMethods = CommercePlugin::getInstance()->getShippingMethods()->getAllShippingMethods();
-        $craftShippingMethods = ArrayHelper::index($craftShippingMethods, 'name');
-
-        $craftCountries = CommercePlugin::getInstance()->getStore()->getStore()->getCountriesList();
-
-        $result = [];
-        foreach ($shippingMethods as $shippingMethod) {
-            $methodData = $shippingMethod->toArray();
-            
-            if ($integration->servicePointEnabled) {
-                $methodData['allowsServicePoints'] = (bool)$shippingMethod->getAllowsServicePoints();
-            } elseif ($shippingMethod->getAllowsServicePoints()) {
-                continue;
-            }
-            
-            if (!array_intersect(array_keys($craftCountries), array_keys($methodData['prices']))) {
-                continue;
-            }
-            
-            if (array_key_exists($methodData['name'], $craftShippingMethods)) {
-                $methodData['craftId'] = $craftShippingMethods[$methodData['name']]->id;
-            }
-            
-            $result[] = $methodData;
-        }
-        
-        return $this->asJson([
-            'shippingMethods' => $result,
-        ]);
+        return $this->renderTemplate('commerce-sendcloud/settings/order-sync', compact('stores'));
     }
 }

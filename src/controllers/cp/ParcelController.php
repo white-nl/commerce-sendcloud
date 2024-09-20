@@ -11,6 +11,7 @@ use craft\helpers\Queue;
 use craft\web\Controller;
 use craft\web\Response;
 use JouwWeb\Sendcloud\Exception\SendcloudRequestException;
+use white\commerce\sendcloud\enums\LabelFormat;
 use white\commerce\sendcloud\models\Parcel;
 use white\commerce\sendcloud\queue\jobs\PushOrder;
 use white\commerce\sendcloud\SendcloudPlugin;
@@ -53,7 +54,7 @@ class ParcelController extends Controller
                 }
             }
             
-            $label = $client->getLabelPdf($status->parcelId, Parcel::LABEL_FORMAT_A6);
+            $label = $client->getLabelPdf($status->parcelId, LabelFormat::FORMAT_A6);
         } catch (\Exception $e) {
             SendcloudPlugin::error("Could not print a Sendcloud label.", $e);
             Craft::$app->getSession()->setError(Craft::t('commerce-sendcloud', "Could not get Sendcloud label. Please check the error logs for more details."));
@@ -103,7 +104,7 @@ class ParcelController extends Controller
         $client = SendcloudPlugin::getInstance()->sendcloudApi->getClient();
 
         try {
-            $labels = $client->getLabelsPdf($parcelIds, Parcel::LABEL_FORMAT_A6);
+            $labels = $client->getLabelsPdf($parcelIds, LabelFormat::FORMAT_A6);
         } catch (\Exception $e) {
             SendcloudPlugin::getInstance()->error("Could not print Sendcloud labels.", $e);
             Craft::$app->getSession()->setError(Craft::t('commerce-sendcloud', "Could not get Sendcloud label. Please check the error logs for more details."));

@@ -4,6 +4,8 @@ namespace white\commerce\sendcloud\variables;
 
 use craft\base\Component;
 use craft\commerce\elements\Order;
+use craft\commerce\models\Store;
+use craft\commerce\Plugin;
 use craft\errors\SiteNotFoundException;
 use craft\helpers\ArrayHelper;
 use JouwWeb\Sendcloud\Model\ShippingMethod;
@@ -40,9 +42,10 @@ class SendcloudVariable extends Component
      * @return string|null
      * @throws SiteNotFoundException
      */
-    public function getIntegrationPublicKey(): ?string
+    public function getIntegrationPublicKey(?Store $store = null): ?string
     {
-        $integration = $this->integrations->getIntegrationBySiteId(\Craft::$app->getSites()->getPrimarySite()->id);
+        $store = $store ?? Plugin::getInstance()->getStores()->getPrimaryStore();
+        $integration = $this->integrations->getIntegrationByStoreId($store->id);
         return $integration?->publicKey;
     }
 
@@ -52,9 +55,10 @@ class SendcloudVariable extends Component
      * @return array|ShippingMethod[]
      * @throws SiteNotFoundException
      */
-    public function getShippingMethods(): array
+    public function getShippingMethods(?Store $store = null): array
     {
-        return $this->sendcloudApi->getClient()->getShippingMethods();
+        $store = $store ?? Plugin::getInstance()->getStores()->getPrimaryStore();
+        return $this->sendcloudApi->getClient()->getShippingMethods($store->id);
     }
 
     /**

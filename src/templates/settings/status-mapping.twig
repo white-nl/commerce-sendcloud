@@ -1,0 +1,91 @@
+{% extends "commerce-sendcloud/_layouts/settings" %}
+
+{% set selectedTab = 'settings' %}
+{% set selectedItem = 'status-mapping' %}
+{% set showStoreSwitcher = true %}
+
+{% import "codeeditor/codeEditor" as codeEditor %}
+{% import "_includes/forms" as forms %}
+
+{% set monacoOptions = {
+} %}
+
+{% set codeEditorOptions = {
+    wrapperClass: "monaco-editor-background-frame",
+} %}
+
+{% block content %}
+    <form action="" method="post" accept-charset="UTF-8" data-saveshortcut>
+        {{ actionInput('commerce-sendcloud/cp/status-mapping/save') }}
+        {{ redirectInput('commerce-sendcloud/settings/'~store.handle~'/status-mapping') }}
+        {{ hiddenInput('storeId', store.id) }}
+        {{ csrfInput() }}
+        {{ forms.multiselectField({
+            label: "Push orders to Sendcloud"|t('commerce-sendcloud'),
+            instructions: "Orders with these statuses will be pushed automatically to Sendcloud"|t('commerce-sendcloud'),
+            id: "orderStatusesToPush",
+            name: "orderStatusesToPush",
+            options: statusMapping.getOrderStatuses(),
+            values: statusMapping.orderStatusesToPush,
+            errors: statusMapping.getErrors('orderStatusesToPush'),
+            class: 'selectize fullwidth',
+        }) }}
+
+        {{ forms.multiselectField({
+            label: "Create labels for orders"|t('commerce-sendcloud'),
+            instructions: "Automatically create labels in Sendcloud for orders with these statuses."|t('commerce-sendcloud'),
+            id: "orderStatusesToCreateLabel",
+            name: "orderStatusesToCreateLabel",
+            options: statusMapping.getOrderStatuses(),
+            values: statusMapping.orderStatusesToCreateLabel,
+            errors: statusMapping.getErrors('orderStatusesToCreateLabel'),
+            class: "selectize fullwidth",
+        }) }}
+
+        {{ forms.editableTableField({
+            label: "Automatic Craft order status updates"|t('commerce-sendcloud'),
+            instructions: "You can map specific Sendcloud parcel status to a craft order status. Order status will be updated automatically when the parcel status changes."|t('commerce-sendcloud'),
+            id: "mapping",
+            name: "orderStatusMapping",
+            cols: {
+                sendcloud: {
+                    type: "select",
+                    options: statusMapping.getSendCloudStatuses(),
+                    heading: "Sendcloud status"|t('commerce-sendcloud')
+                },
+                craft: {
+                    type: "select",
+                    options: statusMapping.getOrderStatuses(),
+                    heading: "Craft order status"|t('commerce-sendcloud')
+                },
+            },
+            rows: statusMapping.orderStatusMapping,
+            allowAdd: true,
+            allowReorder: true,
+            allowDelete: true,
+        }) }}
+
+        {{ codeEditor.textField({
+            label: "Order Number Format"|t('commerce-sendcloud'),
+            instructions: "A friendly order number will be generated when the order is pushed to Sendcloud. For example {ex1}, or <br> {ex2}. The result of this format must be unique."|t('commerce-sendcloud', {
+                ex1: "<code>{{ order.id }}</code>",
+                ex2: "<code>{{ order.reference }}</code>",
+            }),
+            id: "orderNumberFormat",
+            name: "orderNumberFormat",
+            value: statusMapping.orderNumberFormat,
+            class: "code ltr",
+            errors: statusMapping.getErrors('orderNumberFormat'),
+            required: true,
+        }, 'SendcloudOrderNumber', monacoOptions, codeEditorOptions) }}
+
+        <input type="submit" class="btn submit" value="{{ "Save"|t('commerce-sendcloud') }}">
+    </form>
+{% endblock %}
+
+{% js %}
+    $('#orderStatusesToPush, #orderStatusesToCreateLabel').selectize({
+        plugins: ['remove_button'],
+        dropdownParent: 'body',
+    });
+{% endjs %}

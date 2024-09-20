@@ -89,16 +89,7 @@ class StoreSettingsController extends Controller
             throw new \Exception('Could not save the integration.');
         }
 
-        $generalConfig = Craft::$app->getConfig()->getGeneral();
-        $webhookPath = 'commerce-sendcloud/webhook';
-        $webhookArgs = [
-            'id' => $integration->id,
-            'token' => $integration->token,
-        ];
-        $webhookUrl = $generalConfig->pathParam
-            ? UrlHelper::cpUrl('', array_merge([$generalConfig->pathParam => $webhookPath], $webhookArgs))
-            : UrlHelper::cpUrl($webhookPath, $webhookArgs);
-
+        $webhookUrl = $this->_createWebhookUrl($integration);
         $url = $this->sendcloudConnectUrl;
         $url .= '?' . http_build_query([
             'url_webshop' => $store->getSites()->first()?->getBaseUrl() ?? Craft::$app->getSites()->getPrimarySite()->getBaseUrl(),
@@ -107,6 +98,35 @@ class StoreSettingsController extends Controller
         ]);
 
         return $this->redirect($url);
+    }
+    
+    public function actionRefresh(): Response
+    {
+        $storeId = Craft::$app->getRequest()->getRequiredBodyParam('storeId');
+        $store = Commerce::getInstance()->getStores()->getStoreById($storeId);
+        if (!$store) {
+            throw new NotFoundHttpException('Store not found.');
+        }
+        
+        $integrationService = SendcloudPlugin::getInstance()->integrations;
+        
+        $integration = $integrationService->getIntegrationByStoreId($storeId);
+        if (!$integration) {
+            Craft::$app->getSession()->setError(Craft::t('commerce-sendcloud', 'Integration not found.'));
+        }
+        
+        $webhookUrl = $this->_createWebhookUrl($integration);
+        $integration->shopUrl = $store->getSites()->first()?->getBaseUrl() ?? Craft::$app->getSites()->getPrimarySite()->getBaseUrl();
+        $integration->webhookUrl = $webhookUrl;
+
+        $shopName = sprintf('%s: %s', Craft::$app->getSystemName(), $store->getName());
+
+        $client = SendcloudPlugin::getInstance()->sendcloudApi->getClient($storeId);
+        if ($client->updateIntegration($integration, $shopName)) {
+            Craft::$app->getSession()->setNotice(Craft::t('commerce-sendcloud', 'Integration updated.'));
+        }
+
+        return $this->redirectToPostedUrl();
     }
 
     public function actionDisconnect(): Response
@@ -206,5 +226,25 @@ class StoreSettingsController extends Controller
         $variables['shippingMethods'] = $result;
 
         return $this->renderTemplate('commerce-sendcloud/store-settings/_shipping-methods', $variables);
+    }
+
+    /**
+     * @param Integration $integration
+     * @return string
+     * @throws \craft\errors\SiteNotFoundException
+     * @throws \yii\base\Exception
+     * @throws \yii\base\InvalidConfigException
+     */
+    private function _createWebhookUrl(Integration $integration): string
+    {
+        $generalConfig = Craft::$app->getConfig()->getGeneral();
+        $webhookPath = 'commerce-sendcloud/webhook';
+        $webhookArgs = [
+            'id' => $integration->id,
+            'token' => $integration->token,
+        ];
+        return $generalConfig->pathParam
+            ? UrlHelper::cpUrl('', array_merge([$generalConfig->pathParam => $webhookPath], $webhookArgs))
+            : UrlHelper::cpUrl($webhookPath, $webhookArgs);
     }
 }

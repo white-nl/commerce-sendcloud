@@ -25,7 +25,9 @@ use white\commerce\sendcloud\models\Settings;
 use white\commerce\sendcloud\plugin\Routes;
 use white\commerce\sendcloud\services\Integrations;
 use white\commerce\sendcloud\services\OrderSync;
+use white\commerce\sendcloud\services\ParcelItems;
 use white\commerce\sendcloud\services\SendcloudApi;
+use white\commerce\sendcloud\services\StatusMapping;
 use white\commerce\sendcloud\variables\SendcloudVariable;
 use yii\base\Event;
 use yii\log\Logger;
@@ -33,6 +35,8 @@ use yii\log\Logger;
 /**
  * @property Integrations $integrations
  * @property OrderSync $orderSync
+ * @property ParcelItems $parcelItems
+ * @property StatusMapping $statusMapping
  * @property-read mixed $settingsResponse
  * @property-read null|array $cpNavItem
  * @property-read Settings $settings
@@ -49,7 +53,9 @@ class SendcloudPlugin extends Plugin
             'components' => [
                 'integrations' => ['class' => Integrations::class],
                 'orderSync' => ['class' => OrderSync::class],
+                'parcelItems' => ['class' => ParcelItems::class],
                 'sendcloudApi' => ['class' => SendcloudApi::class],
+                'statusMapping' => ['class' => StatusMapping::class],
             ],
         ];
     }
@@ -92,7 +98,7 @@ class SendcloudPlugin extends Plugin
      */
     public function getSettingsResponse(): mixed
     {
-        return Craft::$app->getResponse()->redirect(UrlHelper::cpUrl('commerce-sendcloud/settings'));
+        return Craft::$app->getResponse()->redirect(UrlHelper::cpUrl('commerce-sendcloud/settings/field-mapping'));
     }
 
     /**
@@ -112,7 +118,7 @@ class SendcloudPlugin extends Plugin
         if (Craft::$app->getUser()->getIsAdmin() && Craft::$app->getConfig()->getGeneral()->allowAdminChanges) {
             $item['subnav']['settings'] = [
                 'label' => Craft::t('commerce-sendcloud', 'Settings'),
-                'url' => 'commerce-sendcloud/settings',
+                'url' => 'commerce-sendcloud/settings/field-mapping',
             ];
         }
 

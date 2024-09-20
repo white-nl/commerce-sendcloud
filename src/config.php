@@ -20,27 +20,6 @@
 
 return [
     '*' => [
-        // Orders with these statuses will be pushed automatically to Sendcloud.
-        // 'orderStatusesToPush' => [
-        //    'new',
-        // ],
-
-        // Automatically create labels in Sendcloud for orders with these statuses.
-        // 'orderStatusesToCreateLabel' => [
-        //     'pending',
-        // ],
-
-        // You can map specific Sendcloud parcel status to a craft order status. Order status will be updated automatically when the parcel status changes.
-        // 'orderStatusMapping' => [
-        //   [
-        //        'sendcloud' => '',
-        //        'craft' => '',
-        //    ],
-        //],
-
-        // A friendly order number will be generated when the order is pushed to Sendcloud. For example '{{ order.id }}', or '{{ order.reference }}'
-        // 'orderNumberFormat' => '{{ order.id }}',
-
         // Select the Craft Commerce product field containing the HS product codes. HS codes are required for shipping outside the EU.
         //'hsCodeFieldHandle' => null,
 
@@ -49,9 +28,6 @@ return [
 
         // Select the Craft field linked to the Address element containing the phone number
         //'phoneNumberFieldHandle' => null,
-
-        // The plugin name as you'd like it to be displayed in the Control Panel.
-        // 'pluginNameOverride' => '',
 
         // The priority to give the push order job (the lower the number, the higher the priority). Set to `null` to inherit the default priority.
         // 'pushOrderJobPriority' => 1024,

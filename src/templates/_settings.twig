@@ -43,38 +43,6 @@
             <div>
                 <div id="order-sync">
                     {{ adminChangesWarning }}
-                    <h3>{{ "International shipping"|t('commerce-sendcloud') }}</h3>
-                    {{ forms.selectField({
-                        label: "HS Code field mapping"|t('commerce-sendcloud'),
-                        instructions: "Select the Craft Commerce product field containing the HS product codes. HS codes are required for shipping outside the EU."|t('commerce-sendcloud'),
-                        id: "hsCodeFieldHandle",
-                        name: "hsCodeFieldHandle",
-                        options: settings.getAvailableTextFields(),
-                        value: settings.hsCodeFieldHandle,
-                        errors: settings.getErrors('hsCodeFieldHandle'),
-                        disabled: not allowAdminChanges,
-                    }) }}
-                    {{ forms.selectField({
-                        label: "Country of Origin field mapping"|t('commerce-sendcloud'),
-                        instructions: "Select the Craft Commerce product field containing the country of Origin. Use only ISO2 country codes!"|t('commerce-sendcloud'),
-                        id: "originCountryFieldHandle",
-                        name: "originCountryFieldHandle",
-                        options: settings.getAvailableTextFields(),
-                        value: settings.originCountryFieldHandle,
-                        errors: settings.getErrors('originCountryFieldHandle'),
-                        disabled: not allowAdminChanges,
-                    }) }}
-                    <h3>{{ "Address fields"|t('commerce-sendcloud') }}</h3>
-                    {{ forms.selectField({
-                        label: "Phone number field"|t('commerce-sendcloud'),
-                        instructions: "Select the Craft field linked to the Address element containing the phone number"|t('commerce-sendcloud'),
-                        id: "phoneNumberFieldHandle",
-                        name: "phoneNumberFieldHandle",
-                        options: settings.getAvailableTextFields(),
-                        value: settings.phoneNumberFieldHandle,
-                        errors: settings.getErrors('phoneNumberFieldHandle'),
-                        disabled: not allowAdminChanges,
-                    }) }}
                 </div>
                 <div id="advanced" class="hidden">
                     {{ adminChangesWarning }}

@@ -1,4 +1,4 @@
-{% extends 'shop/_layouts/main' %}
+{% extends 'shop/_private/layouts' %}
 
 {% if cart is defined and cart.availableShippingMethodOptions|length < 2 and cart.shippingMethod %}
     {% redirect 'shop/checkout/payment-method' %}
@@ -31,7 +31,7 @@
                         {{ redirectInput(siteUrl('shop/checkout/payment-method')) }}
                         {{ successMessageInput('Shipping option updated.') }}
 
-                        {% set sendcloudShippingMethods = craft.commercesendcloud.getShippingMethods() %}
+                        {% set sendcloudShippingMethods = craft.commercesendcloud.getShippingMethods(cart.store) %}
                         {% for handle, method in cart.availableShippingMethodOptions %}
                             <div class="js-shipping-select mt-2">
                                 <label class="block border-blue-300 border-b-2 px-6 py-4 rounded-md shadow-md hover:shadow-lg">
@@ -45,8 +45,8 @@
                                             <strong>{{ method.name }}</strong><br>
                                             <span class="price">{{ method.getPrice()|commerceCurrency(cart.currency) }}</span>
                                             <div>
-                                                {% if sendcloudShippingMethods[method.name].getAllowsServicePoints()|default %}
-                                                    {% set carrier = sendcloudShippingMethods[method.name].carrier|default %}
+                                                {% if sendcloudShippingMethods[method.name].isServicePointInputRequired() %}
+                                                    {% set carrier = sendcloudShippingMethods[method.name].carrier %}
                                                     {% set servicePoint = craft.commercesendcloud.getServicePoint(cart, carrier) %}
                                                     <div class="checked-block">
                                                         <div class="row">
@@ -120,7 +120,7 @@
                                                         });
 
                                                         function getApiKey() {
-                                                          let apiKey = '{{ craft.commercesendcloud.getIntegrationPublicKey() }}';
+                                                          let apiKey = '{{ craft.commercesendcloud.getIntegrationPublicKey(cart.store) }}';
                                                           if (!apiKey) {
                                                             alert('Missing API key');
                                                           }
