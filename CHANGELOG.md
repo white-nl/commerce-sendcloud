@@ -2,6 +2,81 @@
 
 ## Unreleased
 
+### Added
+
+ - Added Craft CMS 5 and Craft Commerce 5 compatibility.
+ - Added multi-store support.
+ - Added the "Manage sendcloud store settings" permission.
+ - Added `white\commerce\sendcloud\services\ParcelItems::EVENT_CREATE_PARCEL_ITEM`.
+ - Added the `applyShippingRules` setting to define if shipping rules in Sendcloud should be applied before creating the label.
+ - Added the `labelFormat` setting to define the format of the labels.
+ - Added `white\commerce\sendcloud\enums\LabelFormat`.
+ - Added `white\commerce\sendcloud\enums\ParcelStatus`.
+ - Added `white\commerce\sendcloud\enums\SendcloudExceptionCode`.
+ - Added `white\commerce\sendcloud\enums\ShipmentType`.
+ - Added an option to update the Sendcloud integration.
+ - Added `white\commerce\sendcloud\cp\StoreSettingsController`.
+ - Added `white\commerce\sendcloud\events\ParcelEvent`.
+ - Added `white\commerce\sendcloud\events\ParcelItemEvent`.
+ - Added `white\commerce\sendcloud\exception\SendcloudClientException`.
+ - Added `white\commerce\sendcloud\exception\SendcloudRequestException`.
+ - Added `white\commerce\sendcloud\exception\SendcloudStateException`.
+ - Added `white\commerce\sendcloud\models\Parcel::$contract`.
+ - Added `white\commerce\sendcloud\models\Parcel::$requestLabel`.
+ - Added `white\commerce\sendcloud\models\Parcel::$email`.
+ - Added `white\commerce\sendcloud\models\Parcel::$shippingMethod`.
+ - Added `white\commerce\sendcloud\models\Parcel::$insuredValue`.
+ - Added `white\commerce\sendcloud\models\Parcel::$totalOrderValueCurrency`.
+ - Added `white\commerce\sendcloud\models\Parcel::$totalOrderValue`.
+ - Added `white\commerce\sendcloud\models\Parcel::$quantity`.
+ - Added `white\commerce\sendcloud\models\Parcel::$shippingMethodCheckoutName`.
+ - Added `white\commerce\sendcloud\models\Parcel::$toPostNumber`.
+ - Added `white\commerce\sendcloud\models\Parcel::$senderAddress`.
+ - Added `white\commerce\sendcloud\models\Parcel::$customsInvoiceNr`.
+ - Added `white\commerce\sendcloud\models\Parcel::$customsShipmentType`.
+ - Added `white\commerce\sendcloud\models\Parcel::$reference`.
+ - Added `white\commerce\sendcloud\models\Parcel::$externalReference`.
+ - Added `white\commerce\sendcloud\models\Parcel::$toServicePointId`.
+ - Added `white\commerce\sendcloud\models\Parcel::$totalInsuredValue`.
+ - Added `white\commerce\sendcloud\models\Parcel::$shipmentUuid`.
+ - Added `white\commerce\sendcloud\models\Parcel::$parcelItems`.
+ - Added `white\commerce\sendcloud\models\Parcel::$isReturn`.
+ - Added `white\commerce\sendcloud\models\Parcel::$length`.
+ - Added `white\commerce\sendcloud\models\Parcel::$width`.
+ - Added `white\commerce\sendcloud\models\Parcel::$height`.
+ - Added `white\commerce\sendcloud\models\Parcel::$requestLabelAsync`.
+ - Added `white\commerce\sendcloud\models\Parcel::$applyShippingRules`.
+ - Added `white\commerce\sendcloud\models\Parcel::$returnSenderAddress`.
+ - Added `white\commerce\sendcloud\models\Parcel::$parcelStatus`.
+ - Added `white\commerce\sendcloud\models\ParcelItem::$productId`.
+ - Added `white\commerce\sendcloud\models\ParcelItem::$properties`.
+ - Added `white\commerce\sendcloud\models\ParcelItem::$itemId`.
+ - Added `white\commerce\sendcloud\models\ParcelItem::$returnReason`.
+ - Added `white\commerce\sendcloud\models\ParcelItem::$returnMessage`.
+ - Added `white\commerce\sendcloud\models\ParcelItem::$midCode`.
+ - Added `white\commerce\sendcloud\models\ParcelItem::$materialContent`.
+ - Added `white\commerce\sendcloud\models\ParcelItem::$intendedUse`.
+ - Added `white\commerce\sendcloud\models\ShippingMethod`.
+ - Added `white\commerce\sendcloud\models\StatusMapping`.
+ - Added `white\commerce\sendcloud\services\ParcelItems`.
+ - Added `white\commerce\sendcloud\services\StatusMapping`.
+
+### Removed
+
+ - Removed the `jouwweb/sendcloud` dependency
+ - Removed `white\commerce\sendcloud\client\JouwWebSendcloudAdapter::EVENT_AFTER_CREATE_ADDRESS`. `white\commerce\sendcloud\client\SendcloudClient::EVENT_AFTER_CREATE_ADDRESS` should be used instead.
+ - Removed `white\commerce\sendcloud\client\JouwWebSendcloudAdapter::EVENT_BEFORE_SET_PARCEL_WEIGHT_EVENT`. `white\commerce\sendcloud\client\SendcloudClient::EVENT_BEFORE_PUSH_PARCEL` should be used instead.
+ - Removed the `pluginNameOverride` setting.
+ - Removed `white\commerce\sendcloud\client\JouwWebParcelNormalizer`.
+ - Removed `white\commerce\sendcloud\client\JouwWebSendcloudAdapter`.
+ - Removed `white\commerce\sendcloud\client\SendcloudInterface`.
+ - Removed `white\commerce\sendcloud\client\WebhookParcelNormalizer`.
+ - Removed `white\commerce\sendcloud\events\ParcelWeightEvent`.
+ - Removed `white\commerce\sendcloud\models\Parcel::$servicePointId`. `white\commerce\sendcloud\models\Parcel::$toServicePointId` should be used instead.
+ - Added `white\commerce\sendcloud\models\Parcel::$shippingMethodId`.
+ - Added `white\commerce\sendcloud\models\Parcel::$statusMessage`.
+ - Added `white\commerce\sendcloud\models\Parcel::$statusId`.
+
 ## 3.1.0 - 2024-04-24
 
 ### Added

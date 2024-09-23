@@ -1,7 +1,7 @@
 {% extends "commerce-sendcloud/_layouts/settings" %}
 
 {% set selectedTab = 'settings' %}
-{% set selectedItem = 'orders' %}
+{% set selectedItem = 'status-mapping' %}
 {% set showStoreSwitcher = true %}
 
 {% import "codeeditor/codeEditor" as codeEditor %}
@@ -16,8 +16,8 @@
 
 {% block content %}
     <form action="" method="post" accept-charset="UTF-8" data-saveshortcut>
-        {{ actionInput('commerce-sendcloud/cp/settings/save-order-settings') }}
-        {{ redirectInput('commerce-sendcloud/settings/'~store.handle~'/orders') }}
+        {{ actionInput('commerce-sendcloud/cp/settings/save-status-mapping') }}
+        {{ redirectInput('commerce-sendcloud/settings/'~store.handle~'/status-mapping') }}
         {{ hiddenInput('storeId', store.id) }}
         {{ csrfInput() }}
 

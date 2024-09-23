@@ -82,14 +82,14 @@ class SettingsController extends Controller
         return $this->redirectToPostedUrl();
     }
 
-    public function actionOrders(?string $storeHandle = null): Response
+    public function actionStatusMapping(?string $storeHandle = null): Response
     {
         if ($storeHandle === null) {
             /** @var Site|HasStoreInterface $site */
             $site = Cp::requestedSite();
             $store = $site->getStore();
 
-            return $this->redirect("commerce-sendcloud/settings/$store->handle/orders");
+            return $this->redirect("commerce-sendcloud/settings/$store->handle/status-mapping");
         }
 
         $settings = SendcloudPlugin::getInstance()->getSettings();
@@ -116,10 +116,10 @@ class SettingsController extends Controller
             $variables['statusMapping'] = $statusMapping;
         }
 
-        return $this->renderTemplate('commerce-sendcloud/settings/orders', $variables);
+        return $this->renderTemplate('commerce-sendcloud/settings/status-mapping', $variables);
     }
 
-    public function actionSaveOrderSettings(): ?Response
+    public function actionSaveStatusMapping(): ?Response
     {
         $this->requirePostRequest();
 
@@ -141,12 +141,5 @@ class SettingsController extends Controller
 
         SendcloudPlugin::getInstance()->statusMapping->saveStatusMapping($statusMapping);
         return $this->redirectToPostedUrl();
-    }
-
-    public function actionOrderSync(): Response
-    {
-        $stores = CommercePlugin::getInstance()->getStores()->getAllStores();
-
-        return $this->renderTemplate('commerce-sendcloud/settings/order-sync', compact('stores'));
     }
 }

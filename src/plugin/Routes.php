@@ -29,8 +29,8 @@ trait Routes
                 // Settings
                 $event->rules['commerce-sendcloud/settings'] = 'commerce-sendcloud/cp/settings';
                 $event->rules['commerce-sendcloud/settings/settings'] = 'commerce-sendcloud/cp/settings';
-                $event->rules['commerce-sendcloud/settings/orders'] = 'commerce-sendcloud/cp/settings/orders'; // Redirects to the first store
-                $event->rules['commerce-sendcloud/settings/<storeHandle:{handle}>/orders'] = 'commerce-sendcloud/cp/settings/orders';
+                $event->rules['commerce-sendcloud/settings/status-mapping'] = 'commerce-sendcloud/cp/settings/status-mapping'; // Redirects to the first store
+                $event->rules['commerce-sendcloud/settings/<storeHandle:{handle}>/status-mapping'] = 'commerce-sendcloud/cp/settings/status-mapping';
 
                 // Store settings
                 $event->rules['commerce-sendcloud/store-settings'] = 'commerce-sendcloud/cp/store-settings/index'; // Redirects to the first store

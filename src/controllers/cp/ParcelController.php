@@ -103,7 +103,7 @@ class ParcelController extends Controller
         $client = SendcloudPlugin::getInstance()->sendcloudApi->getClient();
 
         try {
-            $labels = $client->getLabelsPdf($parcelIds, LabelFormat::FORMAT_A6);
+            $labels = $client->getLabelsPdf($parcelIds);
         } catch (\Exception $e) {
             SendcloudPlugin::getInstance()->error("Could not print Sendcloud labels.", $e);
             Craft::$app->getSession()->setError(Craft::t('commerce-sendcloud', "Could not get Sendcloud label. Please check the error logs for more details."));

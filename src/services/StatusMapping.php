@@ -9,7 +9,7 @@ use yii\base\Component;
 
 class StatusMapping extends Component
 {
-    public const CONFIG_STATUS_MAPPING_KEY = 'commerceSendcloud.statusMapping';
+    public const CONFIG_STATUS_MAPPING_KEY = 'commerce-sendcloud.statusMapping';
 
     public function getStatusMappingByStoreId(int $storeId): StatusMappingModel
     {

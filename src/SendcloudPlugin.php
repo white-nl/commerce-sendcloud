@@ -59,7 +59,7 @@ class SendcloudPlugin extends Plugin
         ];
     }
 
-    public string $schemaVersion = '3.0.0';
+    public string $schemaVersion = '4.0.0';
 
     use Routes;
 
