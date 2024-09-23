@@ -6,7 +6,7 @@
     "require": {
         "php": "^8.2",
         "ext-json": "*",
-        "craftcms/cms": "^5.0.0",
+        "craftcms/cms": "^5.2.0",
         "craftcms/commerce": "^5.0.0",
         "nystudio107/craft-code-editor": "^1.0"
     },
