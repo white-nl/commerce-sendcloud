@@ -10,6 +10,10 @@ final class ClientFactory
 
     private string $secretKey;
 
+    /**
+     * ClientFactort constructor.
+     * @param Integration $integration
+     */
     public function __construct(Integration $integration)
     {
         if (empty($integration->publicKey) || empty($integration->secretKey)) {
@@ -20,6 +24,9 @@ final class ClientFactory
         $this->secretKey = $integration->secretKey;
     }
 
+    /**
+     * @return SendcloudClient
+     */
     public function getClient(): SendcloudClient
     {
         return new SendcloudClient($this->publicKey, $this->secretKey);

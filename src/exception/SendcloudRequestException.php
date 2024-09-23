@@ -13,10 +13,11 @@ class SendcloudRequestException extends SendcloudClientException
     public function __construct(
         string $message = "",
         SendcloudExceptionCode $code = SendcloudExceptionCode::UNKNOWN,
-        ?Throwable $previous = null,
+        ?\Throwable $previous = null,
         protected ?int $sendcloudCode = null,
         protected ?string $sendcloudMessage = null,
     ) {
+        $code = $code->value;
         parent::__construct($message, $code, $previous);
     }
 
@@ -36,10 +37,11 @@ class SendcloudRequestException extends SendcloudClientException
         return $this->sendcloudMessage;
     }
 
-    public static function parseGuzzleExceoption(
+    public static function parseGuzzleException(
         TransferException $exception,
         string $defaultMessage = null,
     ): self {
+        $message = $defaultMessage;
         $code = SendcloudExceptionCode::UNKNOWN;
 
         $responseCode = null;

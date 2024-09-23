@@ -3,12 +3,11 @@
 
 namespace white\commerce\sendcloud\controllers;
 
+use Craft;
 use craft\commerce\Plugin as CommercePlugin;
 use craft\errors\ElementNotFoundException;
 use craft\web\Controller;
-use white\commerce\sendcloud\client\WebhookParcelNormalizer;
 use white\commerce\sendcloud\enums\ParcelStatus;
-use white\commerce\sendcloud\models\OrderSyncStatus;
 use white\commerce\sendcloud\models\Parcel;
 use white\commerce\sendcloud\SendcloudPlugin;
 use yii\base\Exception;
@@ -42,7 +41,7 @@ class WebhookController extends Controller
      */
     public function actionHandle(int $id, string $token): void
     {
-        $request = \Craft::$app->getRequest();
+        $request = Craft::$app->getRequest();
         if (!$request->getIsPost()) {
             throw new MethodNotAllowedHttpException();
         }
@@ -107,7 +106,7 @@ class WebhookController extends Controller
                     }
                     $parcel = Parcel::fromData($parcelData);
 
-                    $mutex = \Craft::$app->getMutex();
+                    $mutex = Craft::$app->getMutex();
                     $lockName = 'sendcloud:orderWebhook:' . $parcel->getOrderNumber();
                     if (!$mutex->acquire($lockName, 5)) {
                         throw new \RuntimeException("Unable to acquire a lock for Sendcloud webhook: '{$lockName}'.");
@@ -148,8 +147,8 @@ class WebhookController extends Controller
                                         }
 
                                         $order->orderStatusId = $orderStatus->id;
-                                        $order->message = \Craft::t('commerce-sendcloud',"[Sendcloud] Status updated via webhook ({statusId}: {statusMessage})",['statusId' => $status->statusId, 'statusMessage' => $status->statusMessage]);
-                                        if (!\Craft::$app->getElements()->saveElement($order)) {
+                                        $order->message = Craft::t('commerce-sendcloud',"[Sendcloud] Status updated via webhook ({statusId}: {statusMessage})",['statusId' => $status->statusId, 'statusMessage' => $status->statusMessage]);
+                                        if (!Craft::$app->getElements()->saveElement($order)) {
                                             SendcloudPlugin::getInstance()->error("Could not save Sendcloud order sync status.\n  " . VarDumper::dumpAsString($order->errors));
                                         }
                                     }

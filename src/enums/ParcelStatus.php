@@ -84,7 +84,8 @@ enum ParcelStatus: int
         };
     }
 
-    public function getLabel(): string {
+    public function getLabel(): string
+    {
         return sprintf('%d: %s', $this->value, $this->getMessage());
     }
 }

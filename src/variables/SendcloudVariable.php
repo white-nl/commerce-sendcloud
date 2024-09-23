@@ -8,8 +8,8 @@ use craft\commerce\models\Store;
 use craft\commerce\Plugin;
 use craft\errors\SiteNotFoundException;
 use craft\helpers\ArrayHelper;
-use JouwWeb\Sendcloud\Model\ShippingMethod;
 use white\commerce\sendcloud\models\OrderSyncStatus;
+use white\commerce\sendcloud\models\ShippingMethod;
 use white\commerce\sendcloud\SendcloudPlugin;
 use white\commerce\sendcloud\services\Integrations;
 use white\commerce\sendcloud\services\OrderSync;
@@ -120,7 +120,7 @@ class SendcloudVariable extends Component
      *
      * @param Order $order
      * @return string|null
-     * @throws SiteNotFoundException
+     * @throws SiteNotFoundException|\yii\base\InvalidConfigException
      */
     public function getReturnPortalUrl(Order $order): ?string
     {

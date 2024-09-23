@@ -6,7 +6,6 @@ use Craft;
 use craft\commerce\base\HasStoreInterface;
 use craft\commerce\Plugin as Commerce;
 use craft\commerce\web\assets\commercecp\CommerceCpAsset;
-use craft\helpers\ArrayHelper;
 use craft\helpers\Cp;
 use craft\helpers\StringHelper;
 use craft\helpers\UrlHelper;
@@ -14,6 +13,7 @@ use craft\models\Site;
 use craft\web\Controller;
 use white\commerce\sendcloud\models\Integration;
 use white\commerce\sendcloud\SendcloudPlugin;
+use yii\web\ForbiddenHttpException;
 use yii\web\HttpException;
 use yii\web\NotFoundHttpException;
 use yii\web\Response;
@@ -39,8 +39,10 @@ class StoreSettingsController extends Controller
 
         if ($user->checkPermission('commerce-sendcloud-manageStoreSettings')) {
             $store = $site->getStore();
-            return $this->redirect("commerce-sendcloud/store-settings/{$store->handle}");
+            return $this->redirect("commerce-sendcloud/store-settings/$store->handle/shipping-methods");
         }
+
+        throw new ForbiddenHttpException();
     }
 
     public function actionIntegration(?string $storeHandle = null): Response
@@ -204,7 +206,7 @@ class StoreSettingsController extends Controller
         $shippingMethods = $client->getShippingMethods($store->id);
 
         $craftShippingMethods = Commerce::getInstance()->getShippingMethods()->getAllShippingMethods($store->id);
-        $craftShippingMethods = ArrayHelper::index($craftShippingMethods, 'name');
+        $craftShippingMethods = $craftShippingMethods->keyBy('name');
 
         $craftCountries = $store->getSettings()->getCountriesList();
 
@@ -216,7 +218,7 @@ class StoreSettingsController extends Controller
                 continue;
             }
 
-            if (array_key_exists($methodData->getName(), $craftShippingMethods)) {
+            if ($craftShippingMethods->has($methodData->getName())) {
                 $methodData->setCraftMethodId($craftShippingMethods[$methodData->getName()]->id);
             }
 

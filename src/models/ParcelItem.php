@@ -2,8 +2,6 @@
 
 namespace white\commerce\sendcloud\models;
 
-use craft\helpers\ArrayHelper;
-use InvalidArgumentException;
 use yii\base\Arrayable;
 use yii\base\ArrayableTrait;
 
@@ -13,12 +11,12 @@ class ParcelItem implements Arrayable
         toArray as traitToArray;
     }
     /**
-     * @param string|null $hsCode [Harmonized System Code](https://en.wikipedia.org/wiki/Harmonized_System). Providing a complete HS code with more characters increases the delivery rate.
      * @param string $weight Weight of a single item in kilograms.
      * @param int $quantity Quantity of items shipped.
      * @param string $description Description of the item.
-     * @param string|null $originCountry [ISO-2 code](http://www.nationsonline.org/oneworld/country_code_list.htm) of the country where the items were originally produced.
      * @param float $value Value of a single item.
+     * @param string|null $hsCode [Harmonized System Code](https://en.wikipedia.org/wiki/Harmonized_System). Providing a complete HS code with more characters increases the delivery rate.
+     * @param string|null $originCountry [ISO-2 code](http://www.nationsonline.org/oneworld/country_code_list.htm) of the country where the items were originally produced.
      * @param string|null $sku The SKU of the product.
      * @param string|null $productId The internal ID of the product.
      * @param array $properties The list of properties of the product. Used as a JSON object with {‘key’: ‘value’}.
@@ -30,12 +28,12 @@ class ParcelItem implements Arrayable
      * @param string|null $intendedUse Text that identifies the Intended Use of the item. This will be used to classify the item based on the new ICS2 system. Used for commercial invoice generation.
      */
     public function __construct(
-        protected ?string $hsCode = null,
         protected string $weight,
         protected int $quantity,
         protected string $description,
-        protected ?string $originCountry = null,
         protected float $value,
+        protected ?string $hsCode = null,
+        protected ?string $originCountry = null,
         protected ?string $sku = null,
         protected ?string $productId = null,
         protected array $properties = [],
@@ -45,7 +43,7 @@ class ParcelItem implements Arrayable
         protected ?string $midCode = null,
         protected ?string $materialContent = null,
         protected ?string $intendedUse = null,
-    ){
+    ) {
     }
 
     public function getHsCode(): ?string
@@ -65,7 +63,7 @@ class ParcelItem implements Arrayable
 
     public function setWeight(string $weight): void
     {
-        $this->weight = number_format($weight, 3);
+        $this->weight = number_format((float)$weight, 3);
     }
 
     public function getQuantity(): int

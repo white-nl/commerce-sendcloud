@@ -3,7 +3,6 @@
 namespace white\commerce\sendcloud\models;
 
 use DateTimeImmutable;
-use white\commerce\sendcloud\client\WebhookParcelNormalizer;
 use white\commerce\sendcloud\enums\LabelFormat;
 use white\commerce\sendcloud\enums\ParcelStatus;
 use white\commerce\sendcloud\enums\ShipmentType;
@@ -18,11 +17,9 @@ class Parcel implements Arrayable
 
     private ?int $id = null;
 
-    private string $name;
-
     private ?int $contract = null;
 
-    private ?Address $address = null;
+    private Address $address;
 
     private bool $requestLabel = false;
 
@@ -30,7 +27,12 @@ class Parcel implements Arrayable
 
     private ShippingMethod $shippingMethod;
 
-    private string $weight;
+    /**
+     * Weight of the parcel in kilograms, if none given the default weight from settings is used. If you provide no weight in your request we’ll use the default weight set in your settings.
+     *
+     * @var string|null
+     */
+    private ?string $weight = null;
 
     private string $orderNumber;
 
@@ -51,6 +53,8 @@ class Parcel implements Arrayable
     private string $customsInvoiceNr = '';
 
     private ShipmentType $customsShipmentType = ShipmentType::CommercialGoods;
+
+    private ?string $reference = null;
 
     private ?string $externalReference = null;
 
@@ -74,6 +78,8 @@ class Parcel implements Arrayable
     private string $height;
 
     private bool $requestLabelAsync = false;
+
+    private bool $applyShippingRules = true;
 
     private ?Address $returnSenderAddress = null;
 
@@ -115,12 +121,12 @@ class Parcel implements Arrayable
         $this->contract = $contract;
     }
 
-    public function getAddress(): ?Address
+    public function getAddress(): Address
     {
         return $this->address;
     }
 
-    public function setAddress(?Address $address): void
+    public function setAddress(Address $address): void
     {
         $this->address = $address;
     }
@@ -155,15 +161,14 @@ class Parcel implements Arrayable
         $this->shippingMethod = $shippingMethod;
     }
 
-    public function getWeight(): string
+    public function getWeight(): string|null
     {
         return $this->weight;
     }
 
-    public function setWeight(string $weight): void
+    public function setWeight(?string $weight = null): void
     {
-        $weight = $weight ?: 0.001;
-        $this->weight = number_format($weight, 3);
+        $this->weight = $weight ? number_format((float)$weight, 3) : null;
     }
 
     public function getOrderNumber(): string
@@ -266,12 +271,22 @@ class Parcel implements Arrayable
         $this->customsShipmentType = $customsShipmentType;
     }
 
+    public function getReference(): string
+    {
+        return $this->reference;
+    }
+
+    public function setReference(?string $reference): void
+    {
+        $this->reference = $reference;
+    }
+
     public function getExternalReference(): string
     {
         return $this->externalReference;
     }
 
-    public function setExternalReference(string $externalReference): void
+    public function setExternalReference(?string $externalReference): void
     {
         $this->externalReference = $externalReference;
     }
@@ -364,6 +379,16 @@ class Parcel implements Arrayable
     public function setRequestLabelAsync(bool $requestLabelAsync): void
     {
         $this->requestLabelAsync = $requestLabelAsync;
+    }
+
+    public function isApplyShippingRules(): bool
+    {
+        return $this->applyShippingRules;
+    }
+
+    public function setApplyShippingRules(bool $applyShippingRules): void
+    {
+        $this->applyShippingRules = $applyShippingRules;
     }
 
     public function getReturnSenderAddress(): ?Address
@@ -503,10 +528,11 @@ class Parcel implements Arrayable
         return $parcel;
     }
 
-    public function fields()
+    public function fields(): array
     {
         return [
             'name' => fn(Parcel $parcel) => $parcel->getName(),
+            'contract',
             'company_name' => fn(Parcel $parcel) => $parcel->getAddress()->getCompanyName(),
             'address' => fn(Parcel $parcel) => $parcel->getAddress()->getAddress(),
             'address_2' => fn(Parcel $parcel) => $parcel->getAddress()->getAddress2(),
@@ -518,16 +544,23 @@ class Parcel implements Arrayable
             'email',
             'to_service_point' => 'toServicePoint',
             'to_post_number' => 'toPostNumber',
+            'sender_address' => 'senderAddress',
             'order_number' => 'orderNumber',
             'weight',
             'customs_invoice_nr' => 'customsInvoiceNr',
             'customs_shipment_type' => fn(Parcel $parcel) => $parcel->getCustomsShipmentType()->value,
+            'reference',
+            'external_reference' => 'externalReference',
             'parcel_items' => fn(Parcel $parcel) => $parcel->getParcelItems(),
             'total_order_value_currency' => 'totalOrderValueCurrency',
             'total_order_value' => 'totalOrderValue',
+            'insured_value' => 'insuredValue',
+            'total_insured_value' => 'totalInsuredValue',
             'shipment' => fn(Parcel $parcel) => ['id' => $parcel->getShippingMethod()->getId()],
             'shipping_method_checkout_name' => 'shippingMethodCheckoutName',
             'request_label' => 'requestLabel',
+            'request_label_async' => 'requestLabelAsync',
+            'apply_shipping_rules' => 'applyShippingRules',
         ];
     }
 }

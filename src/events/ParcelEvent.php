@@ -3,9 +3,7 @@
 namespace white\commerce\sendcloud\events;
 
 use craft\commerce\elements\Order;
-use craft\commerce\models\LineItem;
 use white\commerce\sendcloud\models\Parcel;
-use white\commerce\sendcloud\models\ParcelItem;
 use yii\base\Event;
 
 class ParcelEvent extends Event

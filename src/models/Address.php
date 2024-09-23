@@ -15,40 +15,40 @@ class Address implements Arrayable
     {
         return new self(
             $data['name'],
-            $data['company_name'] ?? null,
             $data['address'],
-            $data['address_2'],
-            $data['address_divided']['house_number'] ?? null,
             $data['city'],
             $data['postal_code'],
-            $data['telephone'] ?? null,
             $data['country']['iso_2'],
+        $data['company_name'] ?? null,
+            $data['address_2'],
+        $data['address_divided']['house_number'] ?? null,
+        $data['telephone'] ?? null,
             $data['country_state'] ?? null,
         );
     }
 
     /**
      * @param string $name Name of the recipient
-     * @param string|null $companyName Company name of the recipient the parcel will be shipped to
      * @param string $address Address of the recipient
-     * @param string|null $address2 Additional address information, e.g. 2nd level
-     * @param string|null $houseNumber House number of the recipient
      * @param string $city City of the recipient
      * @param string $postalCode Zip code of the recipient
-     * @param string|null $telephone Phone number of the recipient
      * @param string $country Country of the recipient
+     * @param string|null $companyName Company name of the recipient the parcel will be shipped to
+     * @param string|null $address2 Additional address information, e.g. 2nd level
+     * @param string|null $houseNumber House number of the recipient
+     * @param string|null $telephone Phone number of the recipient
      * @param string|null $countryState Code of the state (e.g. NY for New York) or province (e.g. RM for Rome). Destinations that require this field are USA, Canada, Italy and Australia. Errors related to this field will mention the to_state field.
      */
     public function __construct(
         protected string $name,
-        protected ?string $companyName = null,
         protected string $address,
-        protected string $address2 = '',
-        protected ?string $houseNumber = null,
         protected string $city,
         protected string $postalCode,
-        protected ?string $telephone = null,
         protected string $country,
+        protected ?string $companyName = null,
+        protected ?string $address2 = null,
+        protected ?string $houseNumber = null,
+        protected ?string $telephone = null,
         protected ?string $countryState = null,
     ) {
     }

@@ -25,8 +25,8 @@ class ShippingMethod
      * @param int $id Unique identifier of the shipping method.
      * @param string $name Name of the shipping method, it should give an idea what the shipping method can be used for.
      * @param string $carrier A carrier_code which will indicate which carrier provides the shipping method.
-     * @param float $min_weight Minimum allowed weight of the parcel for this shipping method.
-     * @param float $max_weight Maximum allowed weight of the parcel for this shipping method.
+     * @param float $minWeight Minimum allowed weight of the parcel for this shipping method.
+     * @param float $maxWeight Maximum allowed weight of the parcel for this shipping method.
      * @param array $countries A list of SO 3166-1 alpha-2 country codes that you can ship to with the shipping method.
      * @param bool $servicePointInputRequired Will be true when the shipping method is meant to ship a parcel to a service point
      * @param int|null $craftMethodId The Craft shipping method id
@@ -83,7 +83,8 @@ class ShippingMethod
         return $this->craftMethodId;
     }
 
-    public function setCraftMethodId(int $craftMethodId): void {
+    public function setCraftMethodId(int $craftMethodId): void
+    {
         $this->craftMethodId = $craftMethodId;
     }
 

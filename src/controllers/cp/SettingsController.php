@@ -85,7 +85,7 @@ class SettingsController extends Controller
     public function actionOrders(?string $storeHandle = null): Response
     {
         if ($storeHandle === null) {
-            /** @var Site|HasStoreInterface $ste */
+            /** @var Site|HasStoreInterface $site */
             $site = Cp::requestedSite();
             $store = $site->getStore();
 
@@ -114,7 +114,6 @@ class SettingsController extends Controller
             $variables['orderStatuses'] = $orderStatuses;
             $statusMapping = SendcloudPlugin::getInstance()->statusMapping->getStatusMappingByStoreId($store->id);
             $variables['statusMapping'] = $statusMapping;
-
         }
 
         return $this->renderTemplate('commerce-sendcloud/settings/orders', $variables);

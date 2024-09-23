@@ -27,7 +27,7 @@ class Integrations extends Component
     }
 
     /**
-     * @param int $siteId
+     * @param int $storeId
      * @return Integration|null
      */
     public function getIntegrationByStoreId(int $storeId): ?Integration

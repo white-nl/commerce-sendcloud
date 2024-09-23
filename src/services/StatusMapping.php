@@ -2,8 +2,8 @@
 
 namespace white\commerce\sendcloud\services;
 
+use Craft;
 use craft\commerce\Plugin;
-use craft\helpers\StringHelper;
 use white\commerce\sendcloud\models\StatusMapping as StatusMappingModel;
 use yii\base\Component;
 
@@ -15,8 +15,8 @@ class StatusMapping extends Component
     {
         $store = Plugin::getInstance()->getStores()->getStoreById($storeId);
 
-        $config = \Craft::$app->getProjectConfig()->get(self::CONFIG_STATUS_MAPPING_KEY . '.' . $store->uid) ?? [];
-        $statusMapping = \Craft::createObject([
+        $config = Craft::$app->getProjectConfig()->get(self::CONFIG_STATUS_MAPPING_KEY . '.' . $store->uid) ?? [];
+        $statusMapping = Craft::createObject([
             'class' => StatusMappingModel::class,
             'attributes' => $config,
         ]);
@@ -27,11 +27,11 @@ class StatusMapping extends Component
     public function saveStatusMapping(StatusMappingModel $statusMapping): bool
     {
         if (!$statusMapping->validate()) {
-            \Craft::info(\Craft::t('commerce-sendcloud', 'Status mapping not saved due to validation error.', __METHOD__));
+            Craft::info(Craft::t('commerce-sendcloud', 'Status mapping not saved due to validation error.'), __METHOD__);
             return false;
         }
 
-        $projectConfig = \Craft::$app->getProjectConfig();
+        $projectConfig = Craft::$app->getProjectConfig();
 
         $store = $statusMapping->getStore();
 

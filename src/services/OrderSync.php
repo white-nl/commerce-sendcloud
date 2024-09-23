@@ -11,7 +11,7 @@ use craft\errors\SiteNotFoundException;
 use craft\events\ModelEvent;
 use craft\helpers\Queue;
 use Exception;
-use JouwWeb\Sendcloud\Exception\SendcloudRequestException;
+use white\commerce\sendcloud\exception\SendcloudRequestException;
 use white\commerce\sendcloud\models\OrderSyncStatus;
 use white\commerce\sendcloud\queue\jobs\PushOrder;
 use white\commerce\sendcloud\records\OrderSyncStatus as OrderSyncStatusRecord;
@@ -147,7 +147,9 @@ class OrderSync extends Component
                 }
 
                 try {
-                    $this->syncOrder($event->sender);
+                    /** @var Order $order */
+                    $order = $event->sender;
+                    $this->syncOrder($order);
                 } catch (Exception $exception) {
                     SendcloudPlugin::error("Could not synchronize an order with Sendcloud.", $exception);
                 }
@@ -277,7 +279,7 @@ class OrderSync extends Component
                 throw new \RuntimeException("Could not save order sync status: " . VarDumper::dumpAsString($status->getErrors()));
             }
         } catch (Exception $exception) {
-            $status->lastError = $exception instanceof SendCloudRequestException ? $exception->getSendCloudMessage() : $exception->getMessage();
+            $status->lastError = $exception instanceof SendcloudRequestException ? $exception->getSendCloudMessage() : $exception->getMessage();
             $this->saveOrderSyncStatus($status);
 
             return false;
@@ -340,14 +342,14 @@ class OrderSync extends Component
             return false;
         }
 
-        if ($order->getShippingMethod() === null) {
+        if ($order->shippingMethodHandle === null) {
             SendcloudPlugin::getInstance()->log("Order shipping method not found", Logger::LEVEL_WARNING);
             return false;
         }
 
         $store = $order->getStore();
         $client = $this->sendcloudApi->getClient($store->id);
-        if (!isset($client->getShippingMethods($store->id)[$order->getShippingMethod()->getName()])) {
+        if (!isset($client->getShippingMethods($store->id)[$order->shippingMethodName])) {
             SendcloudPlugin::getInstance()->log("Sendcloud shipping method not found", Logger::LEVEL_WARNING);
             return false;
         }

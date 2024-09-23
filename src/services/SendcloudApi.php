@@ -5,10 +5,9 @@ namespace white\commerce\sendcloud\services;
 
 use craft\base\Component;
 use craft\commerce\Plugin;
-use craft\errors\SiteNotFoundException;
+use RuntimeException;
 use white\commerce\sendcloud\client\ClientFactory;
 use white\commerce\sendcloud\client\SendcloudClient;
-use white\commerce\sendcloud\client\SendcloudInterface;
 use white\commerce\sendcloud\models\Integration;
 use white\commerce\sendcloud\SendcloudPlugin;
 
@@ -29,7 +28,7 @@ class SendcloudApi extends Component
      * Gets the Sendcloud API client configured for the given store.
      * @param int|null $storeId
      * @return SendcloudClient
-     * @throws SiteNotFoundException
+     * @throws \yii\base\InvalidConfigException
      */
     public function getClient(?int $storeId = null): SendcloudClient
     {
@@ -40,7 +39,7 @@ class SendcloudApi extends Component
         if (!array_key_exists($storeId, $this->clientsByStoreId)) {
             $integration = $this->integrations->getIntegrationByStoreId($storeId);
             if (!$integration instanceof Integration) {
-                throw new \RuntimeException(sprintf('Integration not found for store #%s.', $storeId));
+                throw new RuntimeException(sprintf('Integration not found for store #%s.', $storeId));
             }
 
             $this->clientsByStoreId[$storeId] = (new ClientFactory($integration))->getClient();
