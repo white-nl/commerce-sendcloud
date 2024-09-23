@@ -4,8 +4,8 @@ namespace white\commerce\sendcloud\models;
 
 use Craft;
 use craft\base\Model;
-use craft\commerce\Plugin as CommercePlugin;
-use yii\base\InvalidConfigException;
+use craft\helpers\App;
+use white\commerce\sendcloud\enums\LabelFormat;
 
 /**
  *
@@ -13,11 +13,6 @@ use yii\base\InvalidConfigException;
  */
 class Settings extends Model
 {
-    /**
-     * @var string The plugin name as you'd like it to be displayed in the Control Panel.
-     */
-    public string $pluginNameOverride = '';
-
     /**
      * @var string|null Select the Craft Commerce product field containing the HS product codes. HS codes are required for shipping outside the EU.
      */
@@ -48,18 +43,25 @@ class Settings extends Model
     public int $createLabelJobPriority = 1024;
 
     /**
+     * @var int The format of the shipping label to be downloaded
+     *
+     * @sine 4.0.0
+     */
+    public int $labelFormat = LabelFormat::FORMAT_A6->value;
+
+    /**
+     * @var bool|string Whether to apply shipping rules provided in Sendcloud to match shipping methods
+     *
+     * @since 4.0.0
+     */
+    public bool|string $applyShippingRules = true;
+
+    /**
      * @inheritdoc
      */
     public function init(): void
     {
         parent::init();
-    }
-
-    public function rules(): array
-    {
-        return [
-            ['pluginNameOverride', 'default', 'value' => Craft::t('commerce-sendcloud', "Sendcloud")],
-        ];
     }
 
     /**
@@ -75,5 +77,20 @@ class Settings extends Model
         }
 
         return $options;
+    }
+
+    public function isApplyShippingRules(bool $parse = true): bool|string
+    {
+        return $parse ? App::parseBooleanEnv($this->applyShippingRules) : $this->applyShippingRules;
+    }
+
+    public function setApplyShippingRules(bool|string $applyShippingRules): void
+    {
+        $this->applyShippingRules = $applyShippingRules;
+    }
+
+    public function getLabelFormat(): LabelFormat
+    {
+        return LabelFormat::from($this->labelFormat);
     }
 }

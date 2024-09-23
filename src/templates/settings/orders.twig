@@ -1,7 +1,7 @@
 {% extends "commerce-sendcloud/_layouts/settings" %}
 
 {% set selectedTab = 'settings' %}
-{% set selectedItem = 'status-mapping' %}
+{% set selectedItem = 'orders' %}
 {% set showStoreSwitcher = true %}
 
 {% import "codeeditor/codeEditor" as codeEditor %}
@@ -16,10 +16,11 @@
 
 {% block content %}
     <form action="" method="post" accept-charset="UTF-8" data-saveshortcut>
-        {{ actionInput('commerce-sendcloud/cp/status-mapping/save') }}
-        {{ redirectInput('commerce-sendcloud/settings/'~store.handle~'/status-mapping') }}
+        {{ actionInput('commerce-sendcloud/cp/settings/save-order-settings') }}
+        {{ redirectInput('commerce-sendcloud/settings/'~store.handle~'/orders') }}
         {{ hiddenInput('storeId', store.id) }}
         {{ csrfInput() }}
+
         {{ forms.multiselectField({
             label: "Push orders to Sendcloud"|t('commerce-sendcloud'),
             instructions: "Orders with these statuses will be pushed automatically to Sendcloud"|t('commerce-sendcloud'),

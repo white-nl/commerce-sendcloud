@@ -7,13 +7,11 @@ use craft\base\Element;
 use craft\base\Plugin;
 use craft\commerce\elements\Order;
 use craft\events\RegisterElementActionsEvent;
-use craft\events\RegisterUrlRulesEvent;
 use craft\events\RegisterUserPermissionsEvent;
 use craft\helpers\UrlHelper;
 use craft\log\MonologTarget;
 use craft\services\UserPermissions;
 use craft\web\twig\variables\CraftVariable;
-use craft\web\UrlManager;
 use nystudio107\codeeditor\autocompletes\CraftApiAutocomplete;
 use nystudio107\codeeditor\autocompletes\TwigLanguageAutocomplete;
 use nystudio107\codeeditor\events\RegisterCodeEditorAutocompletesEvent;
@@ -21,6 +19,7 @@ use nystudio107\codeeditor\services\AutocompleteService;
 use Psr\Log\LogLevel;
 use white\commerce\sendcloud\elements\actions\BulkPrintSendcloudLabelsAction;
 use white\commerce\sendcloud\elements\actions\BulkPushToSendcloudAction;
+use white\commerce\sendcloud\exception\SendcloudRequestException;
 use white\commerce\sendcloud\models\Settings;
 use white\commerce\sendcloud\plugin\Routes;
 use white\commerce\sendcloud\services\Integrations;
@@ -72,7 +71,6 @@ class SendcloudPlugin extends Plugin
         parent::init();
         $request = Craft::$app->getRequest();
 
-        $this->registerNameOverride();
         $this->registerEventListeners();
         $this->registerVariables();
         $this->registerPermissions();
@@ -118,24 +116,11 @@ class SendcloudPlugin extends Plugin
         if (Craft::$app->getUser()->getIsAdmin() && Craft::$app->getConfig()->getGeneral()->allowAdminChanges) {
             $item['subnav']['settings'] = [
                 'label' => Craft::t('commerce-sendcloud', 'Settings'),
-                'url' => 'commerce-sendcloud/settings/field-mapping',
+                'url' => 'commerce-sendcloud/settings',
             ];
         }
 
         return $item;
-    }
-
-    /**
-     * @return void
-     */
-    protected function registerNameOverride(): void
-    {
-        $name = $this->getSettings()->pluginNameOverride;
-        if (empty($name)) {
-            $name = Craft::t('commerce-sendcloud', "Sendcloud");
-        }
-
-        $this->name = $name;
     }
 
     /**

@@ -4,20 +4,15 @@
 namespace white\commerce\sendcloud\controllers\cp;
 
 use Craft;
+use craft\commerce\base\HasStoreInterface;
 use craft\commerce\Plugin as CommercePlugin;
-use craft\errors\MissingComponentException;
-use craft\errors\SiteNotFoundException;
-use craft\helpers\ArrayHelper;
-use craft\helpers\StringHelper;
-use craft\helpers\UrlHelper;
+use craft\commerce\web\assets\commercecp\CommerceCpAsset;
+use craft\helpers\Cp;
+use craft\models\Site;
 use craft\web\Controller;
-use white\commerce\sendcloud\models\Integration;
+use white\commerce\sendcloud\enums\LabelFormat;
 use white\commerce\sendcloud\SendcloudPlugin;
-use yii\base\Exception;
-use yii\base\InvalidConfigException;
-use yii\db\StaleObjectException;
-use yii\web\BadRequestHttpException;
-use yii\web\NotFoundHttpException;
+use yii\web\HttpException;
 use yii\web\Response;
 
 class SettingsController extends Controller
@@ -31,22 +26,26 @@ class SettingsController extends Controller
         parent::init();
 
         $this->requirePermission('accessPlugin-commerce-sendcloud');
+
+        $this->getView()->registerAssetBundle(CommerceCpAsset::class);
     }
 
     /**
      * @return Response
      */
-    public function actionFieldMapping(): Response
+    public function actionIndex(): Response
     {
         $settings = SendcloudPlugin::getInstance()->getSettings();
         $settings->validate();
 
-        return $this->renderTemplate('commerce-sendcloud/settings/field-mapping', [
-            'settings' => $settings,
-        ]);
+        $labelFormats = LabelFormat::getOptions();
+
+        $variables = compact('settings', 'labelFormats');
+
+        return $this->renderTemplate('commerce-sendcloud/settings/index', $variables);
     }
 
-    public function actionSaveFieldMappingSettings(): ?Response
+    public function actionSaveSettings(): ?Response
     {
         $this->requirePostRequest();
 
@@ -57,21 +56,91 @@ class SettingsController extends Controller
         $settings->hsCodeFieldHandle = $data['hsCodeFieldHandle'] ?? $settings->hsCodeFieldHandle;
         $settings->originCountryFieldHandle = $data['originCountryFieldHandle'] ?? $settings->originCountryFieldHandle;
         $settings->phoneNumberFieldHandle = $data['phoneNumberFieldHandle'] ?? $settings->phoneNumberFieldHandle;
+        $settings->labelFormat = $data['labelFormat'] ?? $settings->labelFormat;
+        $settings->setApplyShippingRules($data['applyShippingRules'] ?? $settings->isApplyShippingRules(false));
 
         if (!$settings->validate()) {
             $this->setFailFlash(Craft::t('commerce-sendcloud', 'Couldn`t save settings.'));
-            return $this->renderTemplate('commerce-sendcloud/settings/field-mapping', compact('settings'));
+            $labelFormats = LabelFormat::getOptions();
+
+            $variables = compact('settings', 'labelFormats');
+            return $this->renderTemplate('commerce-sendcloud/settings/field-mapping', $variables);
         }
 
         $pluginSettingsSaved = Craft::$app->getPlugins()->savePluginSettings(SendcloudPlugin::getInstance(), $settings->toArray());
 
         if (!$pluginSettingsSaved) {
             $this->setFailFlash(Craft::t('commerce-sendcloud', 'Couldn`t save settings.'));
-            return $this->renderTemplate('commerce-sendcloud/settings/field-mapping', compact('settings'));
+            $labelFormats = LabelFormat::getOptions();
+
+            $variables = compact('settings', 'labelFormats');
+            return $this->renderTemplate('commerce-sendcloud/settings/index', $variables);
         }
 
         $this->setSuccessFlash(Craft::t('commerce-sendcloud', 'Settings saved.'));
 
+        return $this->redirectToPostedUrl();
+    }
+
+    public function actionOrders(?string $storeHandle = null): Response
+    {
+        if ($storeHandle === null) {
+            /** @var Site|HasStoreInterface $ste */
+            $site = Cp::requestedSite();
+            $store = $site->getStore();
+
+            return $this->redirect("commerce-sendcloud/settings/$store->handle/orders");
+        }
+
+        $settings = SendcloudPlugin::getInstance()->getSettings();
+        $settings->validate();
+        $labelFormats = LabelFormat::getOptions();
+        $variables = compact('settings', 'storeHandle', 'labelFormats');
+
+        if ($variables['storeHandle']) {
+            $store = CommercePlugin::getInstance()->getStores()->getStoreByHandle($storeHandle);
+            $variables['store'] = $store;
+
+            if (!$variables['store']) {
+                throw new HttpException(404, Craft::t('commerce-sendcloud', 'Store not found'));
+            }
+
+            $storeOrderStatuses = CommercePlugin::getInstance()->getOrderStatuses()->getAllOrderStatuses($store->id);
+            $orderStatuses = [];
+            foreach ($storeOrderStatuses as $storeOrderStatus) {
+                $orderStatuses[] = ['value' => $storeOrderStatus->handle, 'label' => $storeOrderStatus->name];
+            }
+
+            $variables['orderStatuses'] = $orderStatuses;
+            $statusMapping = SendcloudPlugin::getInstance()->statusMapping->getStatusMappingByStoreId($store->id);
+            $variables['statusMapping'] = $statusMapping;
+
+        }
+
+        return $this->renderTemplate('commerce-sendcloud/settings/orders', $variables);
+    }
+
+    public function actionSaveOrderSettings(): ?Response
+    {
+        $this->requirePostRequest();
+
+        $params = $this->request->getBodyParams();
+
+        $storeId = $params['storeId'];
+        $store = CommercePlugin::getInstance()->getStores()->getStoreById($storeId);
+
+        $statusMapping = SendcloudPlugin::getInstance()->statusMapping->getStatusMappingByStoreId($store->id);
+        $statusMapping->orderStatusesToPush = !empty($params['orderStatusesToPush']) ? $params['orderStatusesToPush'] : [];
+        $statusMapping->orderStatusesToCreateLabel = !empty($params['orderStatusesToCreateLabel']) ? $params['orderStatusesToCreateLabel'] : [];
+        $statusMapping->orderStatusMapping = !empty($params['orderStatusMapping']) ? $params['orderStatusMapping'] : [];
+        $statusMapping->orderNumberFormat = $params['orderNumberFormat'] ?? $statusMapping->orderNumberFormat;
+
+        if (!$statusMapping->validate()) {
+            $this->setFailFlash(\Craft::t('commerce-sendcloud', 'Couldn`t save settings.'));
+            return $this->redirectToPostedUrl();
+        }
+
+        SendcloudPlugin::getInstance()->statusMapping->saveStatusMapping($statusMapping);
         return $this->redirectToPostedUrl();
     }
 

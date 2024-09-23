@@ -1,18 +1,35 @@
 {% extends "commerce-sendcloud/_layouts/settings" %}
 
 {% set selectedTab = 'settings' %}
-{% set selectedItem = 'field-mapping' %}
+{% set selectedItem = 'settings' %}
 
 {% import "_includes/forms" as forms %}
 
 {% block content %}
-    <h2>{{ "Field Mapping"|t('commerce-sendcloud') }}</h2>
+    <h2>{{ "General Settings"|t('commerce-sendcloud') }}</h2>
 
     <form action="" method="post" accept-charset="UTF-8" data-saveshortcut>
-        {{ actionInput('commerce-sendcloud/cp/settings/save-field-mapping-settings') }}
-        {{ redirectInput('commerce-sendcloud/settings/field-mapping') }}
+        {{ actionInput('commerce-sendcloud/cp/settings/save-settings') }}
+        {{ redirectInput('commerce-sendcloud/settings') }}
         {{ csrfInput() }}
         {% namespace 'settings' %}
+            {{ forms.booleanMenuField({
+                label: "Apply Sendcloud shipping rules"|t('commerce-sendcloud'),
+                instructions: "When set to True configured shipping rules will be applied before creating the label and announcing the Parcel"|t('commerce-sendcloud'),
+                name: "applyShippingRules",
+                value: settings.isApplyShippingRules(false),
+                includeEnvVars: true,
+                errors: settings.getErrors('applyShippingRules'),
+            }) }}
+            {{ forms.selectField({
+                label: "Shipping label format"|t('commerce-sendcloud'),
+                instructions: "Select the format in which the shipping labels should be printed."|t('commerce-sendcloud'),
+                name: "labelFormat",
+                options: labelFormats,
+                value: settings.labelFormat,
+                errors: settings.getErrors('labelFormat')
+            }) }}
+
             <h3>{{ "International shipping"|t('commerce-sendcloud') }}</h3>
             {{ forms.selectField({
                 label: "HS Code field mapping"|t('commerce-sendcloud'),
