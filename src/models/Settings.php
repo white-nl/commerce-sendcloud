@@ -14,6 +14,11 @@ use white\commerce\sendcloud\enums\LabelFormat;
 class Settings extends Model
 {
     /**
+     * @var bool Wheter the build in inventory item codes should be used for the Harmonized System Code and the Country Code of Origin
+     */
+    public bool $useInventoryItemCodes = true;
+
+    /**
      * @var string|null Select the Craft Commerce product field containing the HS product codes. HS codes are required for shipping outside the EU.
      */
     public ?string $hsCodeFieldHandle = null;

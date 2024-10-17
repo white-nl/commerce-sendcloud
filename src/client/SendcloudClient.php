@@ -363,11 +363,17 @@ class SendcloudClient extends Component
         foreach ($order->getLineItems() as $lineItem) {
             $purchasable = $lineItem->getPurchasable();
 
-            if ($settings->hsCodeFieldHandle) {
-                $hsSystemCode = $this->_tryGetProductField($purchasable, $settings->hsCodeFieldHandle);
-            }
-            if ($settings->originCountryFieldHandle) {
-                $originCountryCode = $this->_tryGetProductField($purchasable, $settings->originCountryFieldHandle);
+            if ($settings->useInventoryItemCodes) {
+                $inventoryItem = Commerce::getInstance()->getInventory()->getInventoryItemByPurchasable($purchasable);
+                $hsSystemCode = $inventoryItem->harmonizedSystemCode;
+                $originCountryCode = $inventoryItem->countryCodeOfOrigin;
+            } else {
+                if ($settings->hsCodeFieldHandle) {
+                    $hsSystemCode = $this->_tryGetProductField($purchasable, $settings->hsCodeFieldHandle);
+                }
+                if ($settings->originCountryFieldHandle) {
+                    $originCountryCode = $this->_tryGetProductField($purchasable, $settings->originCountryFieldHandle);
+                }
             }
 
             $params = [

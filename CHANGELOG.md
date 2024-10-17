@@ -1,5 +1,15 @@
 # Release Notes for Craft Sendcloud Plugin
 
+## Unreleased
+
+### Added
+
+ - Added support for the Country of origin and Harmonized System Code that is included in the Inventory items.
+
+### Fixed
+
+ - Wrong url used in settings page
+
 ## 4.0.0 - 2024-09-23
 
 ### Added
