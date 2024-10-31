@@ -1,5 +1,11 @@
 # Release Notes for Craft Sendcloud Plugin
 
+## 4.0.1 - 2024-10-31
+
+### Fixed
+
+ - Fix weight calculation when weightUnit is grams ([#24](https://github.com/white-nl/commerce-sendcloud/issues/24))
+
 ## 4.0.0 - 2024-09-23
 
 ### Added

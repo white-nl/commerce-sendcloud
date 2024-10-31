@@ -64,7 +64,7 @@ class ParcelItems extends Component
 
         $weightUnit = Plugin::getInstance()->getSettings()->weightUnits;
         return match ($weightUnit) {
-            'g' => $weight * 1000,
+            'g' => $weight / 1000,
             'lb' => $weight * 0.453,
             default => $weight,
         };
