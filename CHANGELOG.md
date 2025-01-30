@@ -9,6 +9,7 @@
 ### Fixed
 
  - Wrong url used in settings page
+ - Fix weight calculation when weightUnit is grams ([#24](https://github.com/white-nl/commerce-sendcloud/issues/24)
 
 ## 4.0.1 - 2024-10-31
 

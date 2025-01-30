@@ -502,8 +502,8 @@ class SendcloudClient extends Component
         }
 
         $weightUnit = Commerce::getInstance()->getSettings()->weightUnits;
-        $totalWeight = match ($weightUnit) {
-            'g' => $weight * 1000,
+        return match ($weightUnit) {
+            'g' => $weight / 1000,
             'lb' => $weight * 0.453,
             default => $weight,
         };
