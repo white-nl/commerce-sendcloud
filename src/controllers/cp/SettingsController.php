@@ -53,6 +53,7 @@ class SettingsController extends Controller
         $data = $params['settings'];
 
         $settings = SendcloudPlugin::getInstance()->getSettings();
+        $settings->useInventoryItemCodes = $data['useInventoryItemCodes'] ?? $settings->useInventoryItemCodes;
         $settings->hsCodeFieldHandle = $data['hsCodeFieldHandle'] ?? $settings->hsCodeFieldHandle;
         $settings->originCountryFieldHandle = $data['originCountryFieldHandle'] ?? $settings->originCountryFieldHandle;
         $settings->phoneNumberFieldHandle = $data['phoneNumberFieldHandle'] ?? $settings->phoneNumberFieldHandle;

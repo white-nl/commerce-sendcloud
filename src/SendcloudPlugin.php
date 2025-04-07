@@ -59,7 +59,7 @@ class SendcloudPlugin extends Plugin
         ];
     }
 
-    public string $schemaVersion = '4.0.0';
+    public string $schemaVersion = '4.1.0';
 
     use Routes;
 
@@ -96,7 +96,7 @@ class SendcloudPlugin extends Plugin
      */
     public function getSettingsResponse(): mixed
     {
-        return Craft::$app->getResponse()->redirect(UrlHelper::cpUrl('commerce-sendcloud/settings/field-mapping'));
+        return Craft::$app->getResponse()->redirect(UrlHelper::cpUrl('commerce-sendcloud/settings/settings'));
     }
 
     /**

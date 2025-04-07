@@ -1,5 +1,16 @@
 # Release Notes for Craft Sendcloud Plugin
 
+## 4.1.0 - 2025-04-07
+
+### Added
+
+ - Added support for the Country of origin and Harmonized System Code that is included in the Inventory items.
+
+### Fixed
+
+ - Wrong url used in settings page
+ - Fix weight calculation when weightUnit is grams ([#24](https://github.com/white-nl/commerce-sendcloud/issues/24)
+
 ## 4.0.1 - 2024-10-31
 
 ### Fixed
