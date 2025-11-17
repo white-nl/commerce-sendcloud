@@ -204,22 +204,22 @@ class ParcelItem implements Arrayable
             'weight',
             'value',
             'sku',
+            'hs_code' => 'hsCode',
+            'origin_country' => 'originCountry',
+            'product_id' => 'productId',
+            'properties',
+            'item_id' => 'itemId',
+            'return_reason' => 'returnReason',
+            'return_message' => 'returnMessage',
+            'mid_code' => 'midCode',
+            'material_content' => 'materialContent',
+            'intended_use' => 'intendedUse',
         ];
     }
 
-    public function extraFields(): array
+    public function toArray(array $fields = [], array $expand = [], $recursive = true)
     {
-        return [
-            'hsCode',
-            'originCountry',
-            'productId',
-            'properties',
-            'itemId',
-            'returnReason',
-            'returnMessage',
-            'midCode',
-            'materialContent',
-            'intendedUse',
-        ];
+        $data = $this->traitToArray($fields, $expand, $recursive);
+        return array_filter($data, fn ($value) => !is_null($value));
     }
 }

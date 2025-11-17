@@ -536,6 +536,7 @@ class Parcel implements Arrayable
             'company_name' => fn(Parcel $parcel) => $parcel->getAddress()->getCompanyName(),
             'address' => fn(Parcel $parcel) => $parcel->getAddress()->getAddress(),
             'address_2' => fn(Parcel $parcel) => $parcel->getAddress()->getAddress2(),
+            'house_number' => fn(Parcel $parcel) => $parcel->getAddress()->getHouseNumber(),
             'city' => fn(Parcel $parcel) => $parcel->getAddress()->getCity(),
             'postal_code' => fn(Parcel $parcel) => $parcel->getAddress()->getPostalCode(),
             'country' => fn(Parcel $parcel) => $parcel->getAddress()->getCountry(),
