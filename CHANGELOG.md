@@ -1,6 +1,6 @@
 # Release Notes for Craft Sendcloud Plugin
 
-## Unreleased
+## 4.1.1 - 2025-11-17
 
 ### Fixed
 
