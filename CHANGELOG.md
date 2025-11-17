@@ -1,5 +1,12 @@
 # Release Notes for Craft Sendcloud Plugin
 
+## 4.1.1 - 2025-11-17
+
+### Fixed
+
+ - Fixed an issue where the parcel items were missing `hsCode` and `originCountry` fields ([#26](https://github.com/white-nl/commerce-sendcloud/issues/26)).
+ - Fixed an issue where the parcel address was missing its `house_number` and `country_state` in certain situations ([#26](https://github.com/white-nl/commerce-sendcloud/issues/26)).
+
 ## 4.1.0 - 2025-04-07
 
 ### Added

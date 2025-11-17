@@ -35,6 +35,6 @@ You can also install the Sendcloud plugin for Craft CMS via the Plugin Store in 
 Documentation
 -------------
 
-https://white.nl/en/craft-plugins/sendcloud/docs/
+[Documentation](https://user-guide.white.nl/sendcloud/)
 
 *Sendcloud for Craft CMS is brought to you by WHITE Digital Agency*

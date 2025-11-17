@@ -445,12 +445,6 @@ class SendcloudClient extends Component
             $locality = $country->getName();
         }
 
-        $administrativeArea = null;
-        if ($shippingAddress->getAdministrativeArea()) {
-            $administrativeAreas = new Collection(\Craft::$app->getAddresses()->getSubdivisionRepository()->getList([$countryCode]));
-            $administrativeArea = $administrativeAreas->flip()->get($shippingAddress->getAdministrativeArea());
-        }
-
         $address = new Address(
             $shippingAddress->fullName ?: $shippingAddress->getGivenName() . ' ' . $shippingAddress->getFamilyName(),
             $shippingAddress->getAddressLine1(),
@@ -461,7 +455,7 @@ class SendcloudClient extends Component
         $shippingAddress->getAddressLine2() ?? '',
             null,
         $phoneNumber ?? null,
-            $administrativeArea,
+            $shippingAddress->getAdministrativeArea(),
         );
 
         $addressEvent = new AddressEvent([

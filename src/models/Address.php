@@ -165,6 +165,7 @@ class Address implements Arrayable
             'postal_code' => 'postalCode',
             'telephone' => 'telephone',
             'country_state' => 'countryState',
+            'house_number' => 'houseNumber',
         ];
     }
 }
