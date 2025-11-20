@@ -240,7 +240,8 @@ class SendcloudClient extends Component
             throw new \RuntimeException(\Craft::t('commerce-sendcloud', "Could not find Sendcloud shipping method '{method}'", ['method' => $order->shippingMethodName]));
         }
         $shippingMethodId = $shippingMethods[$order->shippingMethodName]->getId();
-        $parcel = $this->_createParcelData($order, $shippingMethodId, requestLabel: true);
+        $status = SendcloudPlugin::getInstance()->orderSync->getOrCreateOrderSyncStatus($order);
+        $parcel = $this->_createParcelData($order, $status->getServicePointId(), requestLabel: true);
         $parcel['id'] = $parcelId;
 
         try {
