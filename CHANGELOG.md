@@ -1,6 +1,6 @@
 # Release Notes for Craft Sendcloud Plugin
 
-## Unreleased
+## 4.1.2 - 2025-11-20
 
 ### Fixed
 - Fixed service point ID not being set correctly when creating a label for a service point shipment.
