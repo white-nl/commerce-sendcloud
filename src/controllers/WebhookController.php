@@ -21,7 +21,7 @@ class WebhookController extends Controller
 {
     protected array|int|bool $allowAnonymous = self::ALLOW_ANONYMOUS_LIVE;
     public $enableCsrfValidation = false;
-    
+
     public function init(): void
     {
         parent::init();
@@ -29,7 +29,7 @@ class WebhookController extends Controller
 
     /**
      * @param int $id
-     * @param string $token
+     * @param string $sendcloudToken
      * @return void
      * @throws MethodNotAllowedHttpException
      * @throws NotFoundHttpException
@@ -39,19 +39,19 @@ class WebhookController extends Controller
      * @throws InvalidConfigException
      * @throws StaleObjectException
      */
-    public function actionHandle(int $id, string $token): void
+    public function actionHandle(int $id, string $sendcloudToken): void
     {
         $request = Craft::$app->getRequest();
         if (!$request->getIsPost()) {
             throw new MethodNotAllowedHttpException();
         }
-        
+
         SendcloudPlugin::log(VarDumper::dumpAsString($request->getBodyParams()));
 
         $integrationService = SendcloudPlugin::getInstance()->integrations;
-        
+
         $integration = $integrationService->getIntegrationById($id);
-        if (!$integration || $integration->token != $token) {
+        if (!$integration || $integration->token != $sendcloudToken) {
             throw new NotFoundHttpException('Integration not found.');
         }
 
@@ -66,7 +66,7 @@ class WebhookController extends Controller
                         if (empty($integration->externalId)) {
                             $integration->externalId = $request->getBodyParam('integration_id');
                         }
-                        
+
                         if (!$integrationService->saveIntegration($integration)) {
                             throw new \RuntimeException("Couldn't save the integration.");
                         }
@@ -122,7 +122,7 @@ class WebhookController extends Controller
                                 return;
                             }
                         }
-                        
+
                         if ($timestamp < $status->lastWebhookTimestamp) {
                             SendcloudPlugin::getInstance()->log("Received late webhook for parcel #{$parcel->getId()}. Ignoring.");
                             return;

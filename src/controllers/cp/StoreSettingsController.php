@@ -101,7 +101,7 @@ class StoreSettingsController extends Controller
 
         return $this->redirect($url);
     }
-    
+
     public function actionRefresh(): Response
     {
         $storeId = Craft::$app->getRequest()->getRequiredBodyParam('storeId');
@@ -109,14 +109,14 @@ class StoreSettingsController extends Controller
         if (!$store) {
             throw new NotFoundHttpException('Store not found.');
         }
-        
+
         $integrationService = SendcloudPlugin::getInstance()->integrations;
-        
+
         $integration = $integrationService->getIntegrationByStoreId($storeId);
         if (!$integration) {
             Craft::$app->getSession()->setError(Craft::t('commerce-sendcloud', 'Integration not found.'));
         }
-        
+
         $webhookUrl = $this->_createWebhookUrl($integration);
         $integration->shopUrl = $store->getSites()->first()?->getBaseUrl() ?? Craft::$app->getSites()->getPrimarySite()->getBaseUrl();
         $integration->webhookUrl = $webhookUrl;
@@ -243,7 +243,7 @@ class StoreSettingsController extends Controller
         $webhookPath = 'commerce-sendcloud/webhook';
         $webhookArgs = [
             'id' => $integration->id,
-            'token' => $integration->token,
+            'sendcloudToken' => $integration->token,
         ];
         return $generalConfig->pathParam
             ? UrlHelper::cpUrl('', array_merge([$generalConfig->pathParam => $webhookPath], $webhookArgs))

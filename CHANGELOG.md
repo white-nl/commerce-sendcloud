@@ -1,5 +1,14 @@
 # Release Notes for Craft Sendcloud Plugin
 
+## Unreleased
+
+> [!WARNING]
+> The webhook endpoint has changed, Refresh your Integration in the Sendcloud store settings to update the webhook URL.
+
+### Fixed
+
+ - Fixed the borken webhook since Craft 5.9.x ([#31](https://github.com/white-nl/commerce-sendcloud/issues/31))
+
 ## 4.1.2 - 2025-11-20
 
 ### Fixed
