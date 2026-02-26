@@ -8,6 +8,7 @@
 ### Fixed
 
  - Fixed the borken webhook since Craft 5.9.x ([#31](https://github.com/white-nl/commerce-sendcloud/issues/31))
+ - Fixed an issue where the logger dispatcher was not present when running tests ([#29](https://github.com/white-nl/commerce-sendcloud/pull/29))
 
 ## 4.1.2 - 2025-11-20
 
