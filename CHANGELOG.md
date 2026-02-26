@@ -1,6 +1,6 @@
 # Release Notes for Craft Sendcloud Plugin
 
-## Unreleased
+## 4.2.0 - 2026-02-26
 
 > [!WARNING]
 > The webhook endpoint has changed, Refresh your Integration in the Sendcloud store settings to update the webhook URL.
