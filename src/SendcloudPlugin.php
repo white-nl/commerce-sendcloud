@@ -29,6 +29,7 @@ use white\commerce\sendcloud\services\SendcloudApi;
 use white\commerce\sendcloud\services\StatusMapping;
 use white\commerce\sendcloud\variables\SendcloudVariable;
 use yii\base\Event;
+use yii\log\Dispatcher;
 use yii\log\Logger;
 
 /**
@@ -244,12 +245,14 @@ class SendcloudPlugin extends Plugin
 
     private function _registerLogTarget(): void
     {
-        Craft::getLogger()->dispatcher->targets[] = new MonologTarget([
-            'name' => 'commerce-sendcloud',
-            'categories' => [self::LOG_CATEGORY],
-            'level' => LogLevel::INFO,
-            'logContext' => false,
-            'allowLineBreaks' => true,
-        ]);
+        if (Craft::getLogger()->dispatcher instanceof Dispatcher) {
+            Craft::getLogger()->dispatcher->targets[] = new MonologTarget([
+                'name' => 'commerce-sendcloud',
+                'categories' => [self::LOG_CATEGORY],
+                'level' => LogLevel::INFO,
+                'logContext' => false,
+                'allowLineBreaks' => true,
+            ]);
+        }
     }
 }
