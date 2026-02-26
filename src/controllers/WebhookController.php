@@ -46,8 +46,6 @@ class WebhookController extends Controller
             throw new MethodNotAllowedHttpException();
         }
 
-        SendcloudPlugin::log(VarDumper::dumpAsString($request->getBodyParams()));
-
         $integrationService = SendcloudPlugin::getInstance()->integrations;
 
         $integration = $integrationService->getIntegrationById($id);
@@ -76,6 +74,7 @@ class WebhookController extends Controller
             case 'integration_connected':
             case 'integration_updated':
                 {
+                    SendcloudPlugin::log(VarDumper::dumpAsString($request->getBodyParams()));
                     if (empty($integration->system)) {
                         $integration->externalId = $request->getBodyParam('integration.id');
                     }
@@ -98,6 +97,7 @@ class WebhookController extends Controller
                 break;
             case 'parcel_status_changed':
                 {
+                    SendcloudPlugin::log(VarDumper::dumpAsString($request->getBodyParams()));
                     $parcelData = $request->getBodyParam('parcel');
                     $timestamp = $request->getBodyParam('timestamp');
                     if (empty($parcelData) || !empty($parcelData['is_return'])) {
