@@ -16,7 +16,6 @@ use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Exception\TransferException;
 use GuzzleHttp\RequestOptions;
 use GuzzleHttp\Utils;
-use Illuminate\Support\Collection;
 use white\commerce\sendcloud\enums\LabelFormat;
 use white\commerce\sendcloud\events\AddressEvent;
 use white\commerce\sendcloud\events\ParcelEvent;
@@ -235,8 +234,9 @@ class SendcloudClient extends Component
     public function createLabel(Order $order, int $parcelId): Parcel
     {
         $store = $order->getStore();
+        $settings = SendcloudPlugin::getInstance()->getSettings();
         $shippingMethods = $this->getShippingMethods($store->id);
-        if (!array_key_exists($order->shippingMethodName, $shippingMethods)) {
+        if (!$settings->isApplyShippingRules() && !array_key_exists($order->shippingMethodName, $shippingMethods)) {
             throw new \RuntimeException(\Craft::t('commerce-sendcloud', "Could not find Sendcloud shipping method '{method}'", ['method' => $order->shippingMethodName]));
         }
         $status = SendcloudPlugin::getInstance()->orderSync->getOrCreateOrderSyncStatus($order);

@@ -347,6 +347,11 @@ class OrderSync extends Component
             return false;
         }
 
+        $settings = SendcloudPlugin::getInstance()->getSettings();
+        if ($settings->isApplyShippingRules()) {
+            return true;
+        }
+
         $store = $order->getStore();
         $client = $this->sendcloudApi->getClient($store->id);
         if (!isset($client->getShippingMethods($store->id)[$order->shippingMethodName])) {
