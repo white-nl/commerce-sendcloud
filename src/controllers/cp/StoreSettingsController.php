@@ -246,7 +246,7 @@ class StoreSettingsController extends Controller
             'sendcloudToken' => $integration->token,
         ];
         return $generalConfig->pathParam
-            ? UrlHelper::cpUrl('', array_merge([$generalConfig->pathParam => $webhookPath], $webhookArgs))
-            : UrlHelper::cpUrl($webhookPath, $webhookArgs);
+            ? UrlHelper::siteUrl('', array_merge([$generalConfig->pathParam => $webhookPath], $webhookArgs))
+            : UrlHelper::siteUrl($webhookPath, $webhookArgs);
     }
 }
