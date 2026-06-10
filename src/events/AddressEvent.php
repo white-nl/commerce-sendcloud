@@ -8,6 +8,6 @@ use yii\base\Event;
 
 class AddressEvent extends Event
 {
-    public CraftAddress $shippingAddress;
-    public Address $address;
+    public CraftAddress $craftAddress;
+    public Address $sendcloudAddress;
 }

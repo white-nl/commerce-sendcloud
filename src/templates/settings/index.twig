@@ -21,12 +21,20 @@
                 includeEnvVars: true,
                 errors: settings.getErrors('applyShippingRules'),
             }) }}
+            {{ forms.booleanMenuField({
+                label: "Skip orders that have an unmapped shipping method when automatically pushing orders to Sendcloud"|t('commerce-sendcloud'),
+                instructions: "When set to True orders that have an unmapped shipping method will be skipped when automatically pushing orders to Sendcloud"|t('commerce-sendcloud'),
+                name: "skipUnmappedShippingMethods",
+                value: settings.isSkipUnmappedShippingMethods(false),
+                includeEnvVars: true,
+                errors: settings.getErrors('skipUnmappedShippingMethods'),
+            }) }}
             {{ forms.selectField({
                 label: "Shipping label format"|t('commerce-sendcloud'),
                 instructions: "Select the format in which the shipping labels should be printed."|t('commerce-sendcloud'),
                 name: "labelFormat",
                 options: labelFormats,
-                value: settings.labelFormat,
+                value: settings.getLabelFormat().value,
                 errors: settings.getErrors('labelFormat')
             }) }}
 

@@ -1,5 +1,38 @@
 # Release Notes for Craft Sendcloud Plugin
 
+## Unreleased
+
+### Added
+
+ - Added `white\commerce\sendcloud\controllers\cp\OrderController`.
+ - Added `white\commerce\sendcloud\services\OrderItems` and `white\commerce\sendcloud\services\OrderItems::EVENT_CREATE_ORDER_ITEM`.
+ - Added `white\commerce\sendcloud\services\OrderSync::EVENT_CREATE_ORDER_DETAILS` and `white\commerce\sendcloud\services\OrderSync::EVENT_AFTER_VALIDATE_ORDER`.
+ - Added `white\commerce\sendcloud\events\OrderDetailsEvent` and `white\commerce\sendcloud\events\ValidateOrderEvent`.
+ - Added `white\commerce\sendcloud\enums\ExportType`.
+ - Added `white\commerce\sendcloud\models\Order`, `white\commerce\sendcloud\models\OrderDetails`, `white\commerce\sendcloud\models\OrderItem`, `white\commerce\sendcloud\models\CustomsInformation`, and `white\commerce\sendcloud\models\Price`.
+ - Added the `skipUnmappedShippingMethods` setting to skip automatic order pushes when no Sendcloud shipping option is mapped for the order shipping method.
+ - The order shipping method handle is sent to Sendcloud, which can be used in a Sendcloud Shipping Rule to better handle unmapped shipping methods.
+
+### Changed
+
+ - Migrated from the sendcloud V2 API to the new V3 API, which includes a new order-based label creation flow.
+ - Renamed `craft.commercesendcloud.getShippingMethods(cart.store)` to `craft.commercesendcloud.getShippingOptions(cart.store)`.
+ - Renamed `white\commerce\sendcloud\models\ShippingMethod` to `white\commerce\sendcloud\models\ShippingOption`.
+ - Updated routes and CP/order actions to use the new order controller and order-based label flow.
+ - Updated bulk label printing to support creating missing labels in batches before downloading a combined PDF.
+ - Updated `white\commerce\sendcloud\client\SendcloudClient::getLabelsPdf()` to accept parcel ID arrays and `::getReturnPortalUrl()` to accept a parcel ID.
+ - Updated event hooks for the new order model flow:
+   - `OrderSync::EVENT_CREATE_ORDER_DETAILS` now emits `OrderDetailsEvent` with both `orderDetails` (Sendcloud payload model) and `order` (Craft Commerce order), replacing the old parcel event flow.
+   - `OrderItems::EVENT_CREATE_ORDER_ITEM` now emits `OrderItemEvent` with `orderItem` and `lineItem`, replacing `ParcelItems::EVENT_CREATE_PARCEL_ITEM`.
+   - `OrderSync::EVENT_AFTER_VALIDATE_ORDER` emits `ValidateOrderEvent` (`order`, `isValid`) before queueing sync, allowing integrations to short-circuit auto-sync logic.
+   - `OrderSync::EVENT_AFTER_CREATE_ADDRESS` remains available and emits `AddressEvent` with `craftAddress` and `sendcloudAddress`.
+
+### Removed
+
+ - Removed `white\commerce\sendcloud\controllers\cp\ParcelController`.
+ - Removed `white\commerce\sendcloud\services\ParcelItems`.
+ - Removed `white\commerce\sendcloud\models\ParcelItem`.
+
 ## 4.2.0 - 2026-02-26
 
 > [!WARNING]
@@ -7,7 +40,7 @@
 
 ### Fixed
 
- - Fixed the borken webhook since Craft 5.9.x ([#31](https://github.com/white-nl/commerce-sendcloud/issues/31))
+ - Fixed the broken webhook since Craft 5.9.x ([#31](https://github.com/white-nl/commerce-sendcloud/issues/31))
  - Fixed an issue where the logger dispatcher was not present when running tests ([#29](https://github.com/white-nl/commerce-sendcloud/pull/29))
 
 ## 4.1.2 - 2025-11-20

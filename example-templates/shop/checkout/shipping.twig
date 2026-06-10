@@ -31,7 +31,7 @@
                         {{ redirectInput(siteUrl('shop/checkout/payment-method')) }}
                         {{ successMessageInput('Shipping option updated.') }}
 
-                        {% set sendcloudShippingMethods = craft.commercesendcloud.getShippingMethods(cart.store) %}
+                        {% set sendcloudShippingOptions = craft.commercesendcloud.getShippingOptions(cart.store) %}
                         {% for handle, method in cart.availableShippingMethodOptions %}
                             <div class="js-shipping-select mt-2">
                                 <label class="block border-blue-300 border-b-2 px-6 py-4 rounded-md shadow-md hover:shadow-lg">
@@ -45,8 +45,8 @@
                                             <strong>{{ method.name }}</strong><br>
                                             <span class="price">{{ method.getPrice()|commerceCurrency(cart.currency) }}</span>
                                             <div>
-                                                {% if sendcloudShippingMethods[method.name].isServicePointInputRequired() %}
-                                                    {% set carrier = sendcloudShippingMethods[method.name].carrier %}
+                                                {% if sendcloudShippingOptions[method.name] is defined and sendcloudShippingOptions[method.name].isServicePointInputRequired() %}
+                                                    {% set carrier = sendcloudShippingOptions[method.name].carrier %}
                                                     {% set servicePoint = craft.commercesendcloud.getServicePoint(cart, carrier) %}
                                                     <div class="checked-block">
                                                         <div class="row">
@@ -83,107 +83,107 @@
                                                 {% if false %}
                                                     <script>{% endif %}
                                                         {% js %}
-                                                      (function () {
+                                                        (function () {
 
-                                                        var shippingMethodRadios = document.getElementsByName('shippingMethodHandle');
-                                                        for (var i in shippingMethodRadios) {
-                                                          if (shippingMethodRadios.hasOwnProperty(i)) {
-                                                            shippingMethodRadios[i].addEventListener('change', function () {
+                                                            var shippingMethodRadios = document.getElementsByName('shippingMethodHandle');
+                                                            for (var i in shippingMethodRadios) {
+                                                                if (shippingMethodRadios.hasOwnProperty(i)) {
+                                                                    shippingMethodRadios[i].addEventListener('change', function () {
 
-                                                              var servicePointIdInputs = document.getElementsByClassName('service-point-id');
-                                                              for (var j in servicePointIdInputs) {
-                                                                if (servicePointIdInputs.hasOwnProperty(j)) {
-                                                                  servicePointIdInputs[j].removeAttribute('required');
+                                                                        var servicePointIdInputs = document.getElementsByClassName('service-point-id');
+                                                                        for (var j in servicePointIdInputs) {
+                                                                            if (servicePointIdInputs.hasOwnProperty(j)) {
+                                                                                servicePointIdInputs[j].removeAttribute('required');
+                                                                            }
+                                                                        }
+
+                                                                        servicePointIdInputs = this.closest('.js-shipping-select').getElementsByClassName('service-point-id');
+                                                                        for (var j in servicePointIdInputs) {
+                                                                            if (servicePointIdInputs.hasOwnProperty(j)) {
+                                                                                servicePointIdInputs[j].setAttribute('required', 'required');
+                                                                            }
+                                                                        }
+                                                                    });
                                                                 }
-                                                              }
-
-                                                              servicePointIdInputs = this.closest('.js-shipping-select').getElementsByClassName('service-point-id');
-                                                              for (var j in servicePointIdInputs) {
-                                                                if (servicePointIdInputs.hasOwnProperty(j)) {
-                                                                  servicePointIdInputs[j].setAttribute('required', 'required');
-                                                                }
-                                                              }
-                                                            });
-                                                          }
-                                                        }
-
-                                                        var sppInfo = document.getElementById('service-point-info-{{ method.handle }}'),
-                                                          sppName = document.getElementById('service-point-name-{{ method.handle }}'),
-                                                          sppAddress = document.getElementById('service-point-address-{{ method.handle }}'),
-                                                          sppPostalCode = document.getElementById('service-point-postal-{{ method.handle }}'),
-                                                          sppCity = document.getElementById('service-point-city-{{ method.handle }}'),
-                                                          sppBtn = document.getElementById('spp-btn-{{ method.handle }}'),
-                                                          sppPointId = document.getElementById('service-point-id-{{ method.handle }}');
-
-                                                        sppBtn.addEventListener('click', function () {
-                                                          openServicePointPicker("{{ cart.shippingAddress.countryCode }}", "{{ craft.app.locale.getLanguageID() }}", "{{ cart.shippingAddress.postalCode }}", "{{ carrier }}");
-                                                        });
-
-                                                        function getApiKey() {
-                                                          let apiKey = '{{ craft.commercesendcloud.getIntegrationPublicKey(cart.store) }}';
-                                                          if (!apiKey) {
-                                                            alert('Missing API key');
-                                                          }
-                                                          return apiKey;
-                                                        }
-
-                                                        function openServicePointPicker(country, language, postalCode, carriers, servicePointId) {
-                                                          let config = {
-                                                            // API key is required, replace it below with your API key
-                                                            'apiKey': getApiKey(),
-                                                            // Country is required
-                                                            'country': country,
-                                                            // Postal code is not required, although we recommend it
-                                                            'postalCode': postalCode,
-                                                            // Language is also not required. defaults to "en" - (available options en, fr, nl, de)
-                                                            'language': language,
-                                                            // you can filter service points by carriers as well.
-                                                            'carriers': carriers, // comma separated string (e.g. "postnl,bpost,dhl")
-                                                            // you can also pass a servicePointId if you want the map to be opened at a preselected service point
-                                                            'servicePointId': servicePointId // integer
-                                                          };
-                                                          sendcloud.servicePoints.open(
-                                                            // first arg: config object
-                                                            config,
-                                                            // second arg: success callback function
-                                                            function (servicePointObject) {
-                                                              sppName.innerHTML = servicePointObject.name;
-                                                              sppAddress.innerHTML = servicePointObject.street + ' ' + servicePointObject.house_number;
-                                                              sppPostalCode.innerHTML = servicePointObject.postal_code;
-                                                              sppCity.innerHTML = servicePointObject.city;
-                                                              sppPointId.value = servicePointObject.id;
-
-                                                              fetch('{{ actionUrl('commerce-sendcloud/cart/set-service-point') }}', {
-                                                                mode: 'cors',
-                                                                cache: 'no-cache',
-                                                                credentials: 'same-origin',
-                                                                method: 'POST',
-                                                                headers: {
-                                                                  'Content-Type': 'application/json',
-                                                                  'X-CSRF-Token': '{{ craft.app.request.csrfToken }}',
-                                                                },
-                                                                body: JSON.stringify({
-                                                                  orderNumber: '{{ cart.number }}',
-                                                                  servicePoint: servicePointObject,
-                                                                })
-                                                              })
-                                                                .then(response => response.json())
-                                                                .then(response => {
-                                                                  console.log(response);
-                                                                })
-                                                                .catch(err => {
-                                                                  console.error(err);
-                                                                });
-
-                                                            },
-                                                            function (errors) {
-                                                              errors.forEach(function (error) {
-                                                                console.log('Failure callback, reason: ' + error);
-                                                              });
                                                             }
-                                                          );
-                                                        }
-                                                      })();
+
+                                                            var sppInfo = document.getElementById('service-point-info-{{ method.handle }}'),
+                                                                sppName = document.getElementById('service-point-name-{{ method.handle }}'),
+                                                                sppAddress = document.getElementById('service-point-address-{{ method.handle }}'),
+                                                                sppPostalCode = document.getElementById('service-point-postal-{{ method.handle }}'),
+                                                                sppCity = document.getElementById('service-point-city-{{ method.handle }}'),
+                                                                sppBtn = document.getElementById('spp-btn-{{ method.handle }}'),
+                                                                sppPointId = document.getElementById('service-point-id-{{ method.handle }}');
+
+                                                            sppBtn.addEventListener('click', function () {
+                                                                openServicePointPicker("{{ cart.shippingAddress.countryCode }}", "{{ craft.app.locale.getLanguageID() }}", "{{ cart.shippingAddress.postalCode }}", "{{ carrier }}");
+                                                            });
+
+                                                            function getApiKey() {
+                                                                let apiKey = '{{ craft.commercesendcloud.getIntegrationPublicKey(cart.store) }}';
+                                                                if (!apiKey) {
+                                                                    alert('Missing API key');
+                                                                }
+                                                                return apiKey;
+                                                            }
+
+                                                            function openServicePointPicker(country, language, postalCode, carriers, servicePointId) {
+                                                                let config = {
+                                                                    // API key is required, replace it below with your API key
+                                                                    'apiKey': getApiKey(),
+                                                                    // Country is required
+                                                                    'country': country,
+                                                                    // Postal code is not required, although we recommend it
+                                                                    'postalCode': postalCode,
+                                                                    // Language is also not required. defaults to "en" - (available options en, fr, nl, de)
+                                                                    'language': language,
+                                                                    // you can filter service points by carriers as well.
+                                                                    'carriers': carriers, // comma separated string (e.g. "postnl,bpost,dhl")
+                                                                    // you can also pass a servicePointId if you want the map to be opened at a preselected service point
+                                                                    'servicePointId': servicePointId // integer
+                                                                };
+                                                                sendcloud.servicePoints.open(
+                                                                    // first arg: config object
+                                                                    config,
+                                                                    // second arg: success callback function
+                                                                    function (servicePointObject) {
+                                                                        sppName.innerHTML = servicePointObject.name;
+                                                                        sppAddress.innerHTML = servicePointObject.street + ' ' + servicePointObject.house_number;
+                                                                        sppPostalCode.innerHTML = servicePointObject.postal_code;
+                                                                        sppCity.innerHTML = servicePointObject.city;
+                                                                        sppPointId.value = servicePointObject.id;
+
+                                                                        fetch('{{ actionUrl('commerce-sendcloud/cart/set-service-point') }}', {
+                                                                            mode: 'cors',
+                                                                            cache: 'no-cache',
+                                                                            credentials: 'same-origin',
+                                                                            method: 'POST',
+                                                                            headers: {
+                                                                                'Content-Type': 'application/json',
+                                                                                'X-CSRF-Token': '{{ craft.app.request.csrfToken }}',
+                                                                            },
+                                                                            body: JSON.stringify({
+                                                                                orderNumber: '{{ cart.number }}',
+                                                                                servicePoint: servicePointObject,
+                                                                            })
+                                                                        })
+                                                                            .then(response => response.json())
+                                                                            .then(response => {
+                                                                                console.log(response);
+                                                                            })
+                                                                            .catch(err => {
+                                                                                console.error(err);
+                                                                            });
+
+                                                                    },
+                                                                    function (errors) {
+                                                                        errors.forEach(function (error) {
+                                                                            console.log('Failure callback, reason: ' + error);
+                                                                        });
+                                                                    }
+                                                                );
+                                                            }
+                                                        })();
                                                         {% endjs %}
                                                         {% if false %}</script>{% endif %}
 

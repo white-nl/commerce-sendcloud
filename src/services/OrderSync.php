@@ -3,16 +3,30 @@
 
 namespace white\commerce\sendcloud\services;
 
+use CommerceGuys\Addressing\Country\CountryRepository;
 use Craft;
 use craft\base\Component;
 use craft\base\Element;
+use craft\commerce\base\Purchasable;
+use craft\commerce\base\PurchasableInterface;
 use craft\commerce\elements\Order;
+use craft\commerce\elements\Variant;
+use craft\commerce\models\OrderStatus;
+use craft\commerce\Plugin as Commerce;
+use craft\elements\Address;
 use craft\errors\SiteNotFoundException;
 use craft\events\ModelEvent;
 use craft\helpers\Queue;
 use Exception;
+use white\commerce\sendcloud\events\AddressEvent;
+use white\commerce\sendcloud\events\OrderDetailsEvent;
+use white\commerce\sendcloud\events\ValidateOrderEvent;
 use white\commerce\sendcloud\exception\SendcloudRequestException;
+use white\commerce\sendcloud\exception\SendcloudStateException;
+use white\commerce\sendcloud\models\Order as SendcloudOrder;
+use white\commerce\sendcloud\models\OrderDetails;
 use white\commerce\sendcloud\models\OrderSyncStatus;
+use white\commerce\sendcloud\models\Price;
 use white\commerce\sendcloud\queue\jobs\PushOrder;
 use white\commerce\sendcloud\records\OrderSyncStatus as OrderSyncStatusRecord;
 use white\commerce\sendcloud\SendcloudPlugin;
@@ -23,12 +37,21 @@ use yii\log\Logger;
 
 class OrderSync extends Component
 {
+    public const EVENT_CREATE_ORDER_DETAILS = 'createOrderDetails';
+
+    /**
+     * @var string Event emitted before the Sendcloud address is created
+     */
+    public const EVENT_AFTER_CREATE_ADDRESS = 'afterCreateAddress';
+
+    public const EVENT_AFTER_VALIDATE_ORDER = 'afterValidateOrder';
+
     private ?SendcloudApi $sendcloudApi = null;
 
     public function init(): void
     {
         parent::init();
-        
+
         $this->sendcloudApi = SendcloudPlugin::getInstance()->sendcloudApi;
     }
 
@@ -42,7 +65,7 @@ class OrderSync extends Component
         $record = OrderSyncStatusRecord::findOne([
             'orderId' => $orderId,
         ]);
-        if (!$record instanceof \white\commerce\sendcloud\records\OrderSyncStatus) {
+        if (!$record instanceof OrderSyncStatusRecord) {
             return null;
         }
 
@@ -59,7 +82,7 @@ class OrderSync extends Component
         $record = OrderSyncStatusRecord::findOne([
             'parcelId' => $parcelId,
         ]);
-        if (!$record instanceof \white\commerce\sendcloud\records\OrderSyncStatus) {
+        if (!$record instanceof OrderSyncStatusRecord) {
             return null;
         }
 
@@ -74,7 +97,7 @@ class OrderSync extends Component
     public function getOrCreateOrderSyncStatus(Order $order): OrderSyncStatus
     {
         $model = $this->getOrderSyncStatusByOrderId($order->getId());
-        if (!$model instanceof \white\commerce\sendcloud\models\OrderSyncStatus) {
+        if (!$model instanceof OrderSyncStatus) {
             return new OrderSyncStatus(['orderId' => $order->getId()]);
         }
 
@@ -92,7 +115,7 @@ class OrderSync extends Component
     {
         if (isset($model->id)) {
             $record = OrderSyncStatusRecord::findOne($model->id);
-            if (!$record instanceof \white\commerce\sendcloud\records\OrderSyncStatus) {
+            if (!$record instanceof OrderSyncStatusRecord) {
                 throw new InvalidArgumentException('No order sync status exists with the ID “' . $model->id . '”');
             }
         } else {
@@ -172,7 +195,7 @@ class OrderSync extends Component
                 $isSendcloudShipping = false;
 
                 if ($status && $status->servicePoint) {
-                    foreach ($this->sendcloudApi->getClient()->getShippingMethods($store->id) as $method) {
+                    foreach ($this->sendcloudApi->getClient()->getShippingOptions($store) as $method) {
                         // Find the matching sendcloud shipping
                         if ($method->getName() == $order->shippingMethodName) {
                             $isSendcloudShipping = true;
@@ -207,23 +230,33 @@ class OrderSync extends Component
         if (!$order->isCompleted) {
             return;
         }
-        
+
         $orderStatus = $order->getOrderStatus();
-        if (!$orderStatus instanceof \craft\commerce\models\OrderStatus) {
+        if (!$orderStatus instanceof OrderStatus) {
             return;
         }
 
         $settings = SendcloudPlugin::getInstance()->getSettings();
         $statusMapping = SendcloudPlugin::getInstance()->statusMapping->getStatusMappingByStoreId($order->getStore()->id);
-        
+
         if (!in_array($orderStatus->handle, $statusMapping->orderStatusesToPush, true) && !in_array($orderStatus->handle, $statusMapping->orderStatusesToCreateLabel, true)) {
             return;
         }
-        
-        if (!$this->validateOrder($order)) {
+
+        $isOrderValid = $this->validateOrder($order);
+
+        $validateOrderEvent = new ValidateOrderEvent([
+            'order' => $order,
+            'isValid' => $isOrderValid,
+        ]);
+        if ($this->hasEventHandlers(self::EVENT_AFTER_VALIDATE_ORDER)) {
+            $this->trigger(self::EVENT_AFTER_VALIDATE_ORDER, $validateOrderEvent);
+        }
+
+        if (!$isOrderValid) {
             return;
         }
-        
+
         $createLabel = in_array($orderStatus->handle, $statusMapping->orderStatusesToCreateLabel, true);
 
         $job = new PushOrder([
@@ -249,7 +282,7 @@ class OrderSync extends Component
             return false;
         }
         $status = $this->getOrCreateOrderSyncStatus($order);
-        
+
         try {
             if ($status->isPushed() && !$force) {
                 return false;
@@ -258,22 +291,9 @@ class OrderSync extends Component
             $store = $order->getStore();
             $client = $this->sendcloudApi->getClient($store->id);
 
-            $parcel = null;
-            if ($status->isPushed()) {
-                try {
-                    $parcel = $client->updateParcel($status, $order);
-                } catch (SendcloudRequestException $sendcloudRequestException) {
-                    if ($sendcloudRequestException->getSendCloudCode() != 404) {
-                        throw $sendcloudRequestException;
-                    }
-                }
-            }
-            
-            if ($parcel === null) {
-                $parcel = $client->createParcel($order, $status->getServicePointId());
-            }
-    
-            $status->fillFromParcel($parcel);
+            $orderData = $this->_createOrderData($order, $status->getServicePointId());
+            $client->pushOrder($orderData);
+
             $status->lastError = null;
             if (!$this->saveOrderSyncStatus($status)) {
                 throw new \RuntimeException("Could not save order sync status: " . VarDumper::dumpAsString($status->getErrors()));
@@ -290,6 +310,12 @@ class OrderSync extends Component
         return true;
     }
 
+    public function getLabel(OrderSyncStatus $status): string
+    {
+        $client = $this->sendcloudApi->getClient($status->getOrder()->getStore()->id);
+        return $client->getLabelPdf($status);
+    }
+
     /**
      * @param Order $order
      * @return bool
@@ -302,18 +328,23 @@ class OrderSync extends Component
         if (!$mutex->acquire($lockName, 5)) {
             return false;
         }
-        $status = $this->getOrCreateOrderSyncStatus($order);
+        /** @var OrderSyncStatus|null $status */
+        $status = $this->getOrderSyncStatusByOrderId($order->getId());
 
         try {
             $store = $order->getStore();
             $client = $this->sendcloudApi->getClient($store->id);
-            if (!$status->isPushed() || $status->isLabelCreated()) {
+            if (!$status || $status->isLabelCreated()) {
                 return false;
             }
 
-            $parcel = $client->createLabel($order, $status->parcelId);
+            $response = $client->createLabel($order);
 
-            $status->fillFromParcel($parcel);
+            $status->parcelId = $response['parcel_id'];
+            if (array_key_exists('tracking_number', $response)) {
+                $status->trackingNumber = $response['tracking_number'];
+                $status->trackingUrl = $response['tracking_url'];
+            }
             $status->lastError = null;
             if (!$this->saveOrderSyncStatus($status)) {
                 throw new \RuntimeException("Could not save order sync status: " . VarDumper::dumpAsString($status->getErrors()));
@@ -321,13 +352,129 @@ class OrderSync extends Component
         } catch (Exception $exception) {
             $status->lastError = $exception instanceof SendCloudRequestException ? $exception->getSendCloudMessage() : $exception->getMessage();
             $this->saveOrderSyncStatus($status);
-            
+
             return false;
         } finally {
             $mutex->release($lockName);
         }
 
         return true;
+    }
+
+    private function _createOrderData(Order $order, ?string $servicePointId = null): SendcloudOrder
+    {
+        $store = $order->getStore();
+        $integration = SendcloudPlugin::getInstance()->integrations->getIntegrationByStoreId($store->id);
+        if ($integration === null) {
+            throw new SendcloudStateException(Craft::t('commerce-sendcloud', "No integration found for store: $store->id"));
+        }
+        $settings = SendcloudPlugin::getInstance()->getSettings();
+
+        $orderItemService = SendcloudPlugin::getInstance()->orderItems;
+        $orderItems = [];
+        foreach ($order->getLineItems() as $lineItem) {
+            /** @var Purchasable $purchasable */
+            $purchasable = $lineItem->getPurchasable();
+
+            if ($settings->useInventoryItemCodes) {
+                $inventoryItem = Commerce::getInstance()->getInventory()->getInventoryItemByPurchasable($purchasable);
+                $hsSystemCode = $inventoryItem->harmonizedSystemCode;
+                $originCountryCode = $inventoryItem->countryCodeOfOrigin;
+            } else {
+                if ($settings->hsCodeFieldHandle) {
+                    $hsSystemCode = $this->_tryGetProductField($purchasable, $settings->hsCodeFieldHandle);
+                }
+                if ($settings->originCountryFieldHandle) {
+                    $originCountryCode = $this->_tryGetProductField($purchasable, $settings->originCountryFieldHandle);
+                }
+            }
+
+            $params = [
+                'hsCode' => $hsSystemCode ?? null,
+                'originCountry' => $originCountryCode ?? null,
+            ];
+            $orderItems[] = $orderItemService->createFromLineItem($lineItem, $params);
+        }
+
+        $orderStatus = $order->getOrderStatus();
+        $orderDetails = Craft::createObject(OrderDetails::class);
+        $orderDetails->setIntegrationId($integration->externalId);
+        $orderDetails->setStatus([
+            'code' => $orderStatus->handle,
+            'message' => $orderStatus->description,
+        ]);
+        $orderDetails->setCreatedAt($order->dateOrdered);
+        $orderDetails->setUpdatedAt($order->dateUpdated);
+        $orderDetails->setOrderItems($orderItems);
+
+        if ($this->hasEventHandlers(self::EVENT_CREATE_ORDER_DETAILS)) {
+            $this->trigger(self::EVENT_CREATE_ORDER_DETAILS, new OrderDetailsEvent([
+                'orderDetails' => $orderDetails,
+                'order' => $order,
+            ]));
+        }
+
+        $statusMapping = SendcloudPlugin::getInstance()->statusMapping->getStatusMappingByStoreId($store->id);
+        $orderNumberTemplate = $statusMapping->orderNumberFormat;
+
+        try {
+            $vars = ['order' => $order];
+            $orderNumber = Craft::$app->getView()->renderString($orderNumberTemplate, $vars);
+        } catch (\Throwable $exception) {
+            Craft::error('Unable to generate Sendcloud order reference for Order ID: ' . $order->getId() . ', with format: ' . $orderNumberTemplate . ', error: ' . $exception->getMessage());
+            throw $exception;
+        }
+
+        $totalPrice = new Price($order->getTotalPrice(), $order->getPaymentCurrency());
+
+        $sendcloudOrder = Craft::createObject(SendcloudOrder::class);
+        $sendcloudOrder->setOrderId($order->number);
+        $sendcloudOrder->setOrderNumber($orderNumber);
+        $sendcloudOrder->setOrderDetails($orderDetails);
+        $sendcloudOrder->setPaymentDetails([
+            'total_price' => $totalPrice->toArray(),
+            'status' => [
+                'code' => $order->getPaidStatus(),
+            ],
+        ]);
+
+        $shippingAddress = $this->_createAddress($order->getShippingAddress(), $order->getEmail());
+        $sendcloudOrder->setShippingAddress($shippingAddress);
+        if ($order->getBillingAddress()) {
+            $billingAddress = $this->_createAddress($order->getBillingAddress(), $order->getEmail());
+            $sendcloudOrder->setBillingAddress($billingAddress);
+        }
+
+        $shippingDetails['delivery_indicator'] = $order->shippingMethodHandle;
+        $totalWeight = $order->getTotalWeight();
+        if ($totalWeight > 0) {
+            $shippingDetails = [
+                'measurement' => [
+                    'weight' => [
+                        'value' => $totalWeight,
+                        'unit' => Commerce::getInstance()->getSettings()->weightUnits,
+                    ],
+                ],
+            ];
+        }
+
+        $sendcloudShippingOption = $this->sendcloudApi->getClient($store->id)->getShippingOptions($store)[$order->shippingMethodName] ?? null;
+        if ($sendcloudShippingOption) {
+            $shippingDetails['ship_with'] = [
+                'type' => 'shipping_option_code',
+                'properties' => [
+                    'shipping_option_code' => $sendcloudShippingOption->getCode(),
+                ],
+            ];
+            if ($sendcloudShippingOption->isServicePointInputRequired()) {
+                $sendcloudOrder->setServicePointDetails([
+                    'id' => $servicePointId,
+                ]);
+            }
+        }
+        $sendcloudOrder->setShippingDetails($shippingDetails);
+
+        return $sendcloudOrder;
     }
 
     /**
@@ -349,11 +496,71 @@ class OrderSync extends Component
 
         $store = $order->getStore();
         $client = $this->sendcloudApi->getClient($store->id);
-        if (!isset($client->getShippingMethods($store->id)[$order->shippingMethodName])) {
+        $settings = SendcloudPlugin::getInstance()->getSettings();
+        if ($settings->isSkipUnmappedShippingMethods() && !isset($client->getShippingOptions($store)[$order->shippingMethodName])) {
             SendcloudPlugin::getInstance()->log("Sendcloud shipping method not found", Logger::LEVEL_WARNING);
             return false;
         }
-        
+
         return true;
+    }
+
+    private function _createAddress(Address $address, string $email): \white\commerce\sendcloud\models\Address
+    {
+        $settings = SendcloudPlugin::getInstance()->getSettings();
+        if ($settings->phoneNumberFieldHandle) {
+            $phoneNumber = $address->getFieldValue($settings->phoneNumberFieldHandle);
+        }
+
+        $locality = $address->getLocality();
+        $countryCode = $address->getCountryCode();
+        if ($locality === null) {
+            $countryRepository = new CountryRepository();
+            $country = $countryRepository->get($countryCode);
+            $locality = $country->getName();
+        }
+        $sendcloudAddress = new \white\commerce\sendcloud\models\Address(
+            name: $address->fullName ?: $address->getGivenName() . ' ' . $address->getFamilyName(),
+            addressLine1: $address->getAddressLine1(),
+            postalCode: $address->getPostalCode(),
+            city: $locality,
+            countryCode: $countryCode,
+            companyName: $address->getOrganization(),
+            houseNumber: null,
+            addressLine2: $address->getAddressLine2(),
+            poBox: null,
+            stateProvinceCode: $address->getAdministrativeArea(),
+            email: $email,
+            phoneNumber: $phoneNumber ?? null,
+        );
+
+        $addressEvent = new AddressEvent([
+            'sendcloudAddress' => $sendcloudAddress,
+            'craftAddress' => $address,
+        ]);
+
+        if ($this->hasEventHandlers(self::EVENT_AFTER_CREATE_ADDRESS)) {
+            $this->trigger(self::EVENT_AFTER_CREATE_ADDRESS, $addressEvent);
+        }
+
+        return $sendcloudAddress;
+    }
+
+    private function _tryGetProductField(PurchasableInterface $purchasable, string $fieldHandle): ?string
+    {
+        if ($purchasable instanceof Element) {
+            if ($purchasable->getFieldLayout()->isFieldIncluded($fieldHandle)) {
+                return $purchasable->getFieldValue($fieldHandle);
+            }
+
+            if ($purchasable instanceof Variant) {
+                $product = $purchasable->getOwner();
+                if ($product?->getFieldLayout()->isFieldIncluded($fieldHandle)) {
+                    return $product->getFieldValue($fieldHandle);
+                }
+            }
+        }
+
+        return null;
     }
 }

@@ -29,7 +29,7 @@ class BulkPrintSendcloudLabelsAction extends ElementAction
             $('<input/>', {
                 type: 'hidden',
                 name: 'action',
-                value: 'commerce-sendcloud/cp/parcel/bulk-print-labels'
+                value: 'commerce-sendcloud/cp/order/bulk-print-labels'
             }).appendTo(\$form);
             \$selectedItems.each(function() {
                 $('<input/>', {

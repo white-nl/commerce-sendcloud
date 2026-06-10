@@ -57,9 +57,6 @@ class OrderSyncStatus extends Model
 
     public string $uid;
 
-    /**
-     * @var ?Order Order
-     */
     private ?Order $_order = null;
 
 
@@ -99,32 +96,13 @@ class OrderSyncStatus extends Model
      * @return mixed|null
      * @throws \Exception
      */
-    public function getServicePointId()
+    public function getServicePointId(): mixed
     {
         if (!$this->servicePoint) {
             return null;
         }
 
         return ArrayHelper::getValue($this->servicePoint, 'id');
-    }
-
-    /**
-     * @param Parcel $parcel
-     * @return void
-     */
-    public function fillFromParcel(Parcel $parcel): void
-    {
-        $this->parcelId = $parcel->getId();
-        $this->parcelStatus = $parcel->getParcelStatus();
-
-        if (!empty($parcel->getCarrier())) {
-            $this->carrier = $parcel->getCarrier();
-        }
-
-        if ($parcel->getTrackingNumber()) {
-            $this->trackingNumber = $parcel->getTrackingNumber();
-            $this->trackingUrl = $parcel->getTrackingUrl();
-        }
     }
 
     /**

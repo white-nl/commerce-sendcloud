@@ -16,40 +16,46 @@ class Address implements Arrayable
         return new self(
             $data['name'],
             $data['address'],
-            $data['city'],
             $data['postal_code'],
+            $data['city'],
             $data['country']['iso_2'],
-        $data['company_name'] ?? null,
-            $data['address_2'],
-        $data['address_divided']['house_number'] ?? null,
-        $data['telephone'] ?? null,
+            $data['company_name'] ?? null,
+            $data['address_divided']['house_number'] ?? null,
+            $data['address_2'] ?? null,
+            $data['po_box'] ?? null,
             $data['country_state'] ?? null,
+            $data['email'] ?? null,
+            $data['telephone'] ?? null,
         );
     }
 
     /**
-     * @param string $name Name of the recipient
-     * @param string $address Address of the recipient
+     * @param string $name Name of the person associated with the address
+     * @param string $addressLine1 First line of the address
+     * @param string $postalCode Zip code of the address
      * @param string $city City of the recipient
-     * @param string $postalCode Zip code of the recipient
-     * @param string $country Country of the recipient
-     * @param string|null $companyName Company name of the recipient the parcel will be shipped to
-     * @param string|null $address2 Additional address information, e.g. 2nd level
+     * @param string $countryCode The country code of the customer represented as ISO 3166-1 alpha-2
+     * @param string|null $companyName Name of the company associated with the address
      * @param string|null $houseNumber House number of the recipient
-     * @param string|null $telephone Phone number of the recipient
-     * @param string|null $countryState Code of the state (e.g. NY for New York) or province (e.g. RM for Rome). Destinations that require this field are USA, Canada, Italy and Australia. Errors related to this field will mention the to_state field.
+     * @param string|null $addressLine2 Additional address information, e.g. 2nd level
+     * @param string|null $poBox Code required in case of PO Box or post locker delivery
+     * @param string|null $stateProvinceCode The character state code of the customer represented as ISO 3166-2 code
+     * @param string|null $email Email address of the person associated with the address
+     * @param string|null $phoneNumber Phone number of the person associated with the address
      */
     public function __construct(
-        protected string $name,
-        protected string $address,
-        protected string $city,
-        protected string $postalCode,
-        protected string $country,
+        protected string  $name,
+        protected string  $addressLine1,
+        protected string  $postalCode,
+        protected string  $city,
+        protected string  $countryCode,
         protected ?string $companyName = null,
-        protected ?string $address2 = null,
         protected ?string $houseNumber = null,
-        protected ?string $telephone = null,
-        protected ?string $countryState = null,
+        protected ?string $addressLine2 = null,
+        protected ?string $poBox = null,
+        protected ?string $stateProvinceCode = null,
+        protected ?string $email = null,
+        protected ?string $phoneNumber = null,
     ) {
     }
 
@@ -73,44 +79,14 @@ class Address implements Arrayable
         $this->companyName = $companyName;
     }
 
-    public function getAddress(): string
+    public function getAddressLine1(): string
     {
-        return $this->address;
+        return $this->addressLine1;
     }
 
-    public function setAddress(string $address): void
+    public function setAddressLine1(string $addressLine1): void
     {
-        $this->address = $address;
-    }
-
-    public function getAddress2(): ?string
-    {
-        return $this->address2;
-    }
-
-    public function setAddress2(?string $address2): void
-    {
-        $this->address2 = $address2;
-    }
-
-    public function getHouseNumber(): ?string
-    {
-        return $this->houseNumber;
-    }
-
-    public function setHouseNumber(?string $houseNumber): void
-    {
-        $this->houseNumber = $houseNumber;
-    }
-
-    public function getCity(): string
-    {
-        return $this->city;
-    }
-
-    public function setCity(string $city): void
-    {
-        $this->city = $city;
+        $this->addressLine1 = $addressLine1;
     }
 
     public function getPostalCode(): string
@@ -123,49 +99,101 @@ class Address implements Arrayable
         $this->postalCode = $postalCode;
     }
 
-    public function getTelephone(): ?string
+    public function getCity(): string
     {
-        return $this->telephone;
+        return $this->city;
     }
 
-    public function setTelephone(?string $telephone): void
+    public function setCity(string $city): void
     {
-        $this->telephone = $telephone;
+        $this->city = $city;
     }
 
-    public function getCountry(): string
+    public function getCountryCode(): string
     {
-        return $this->country;
+        return $this->countryCode;
     }
 
-    public function setCountry(string $country): void
+    public function setCountryCode(string $countryCode): void
     {
-        $this->country = $country;
+        $this->countryCode = $countryCode;
     }
 
-    public function getCountryState(): ?string
+    public function getHouseNumber(): ?string
     {
-        return $this->countryState;
+        return $this->houseNumber;
     }
 
-    public function setCountryState(?string $countryState): void
+    public function setHouseNumber(?string $houseNumber): void
     {
-        $this->countryState = $countryState;
+        $this->houseNumber = $houseNumber;
     }
 
-    public function fields()
+    public function getAddressLine2(): ?string
+    {
+        return $this->addressLine2;
+    }
+
+    public function setAddressLine2(?string $addressLine2): void
+    {
+        $this->addressLine2 = $addressLine2;
+    }
+
+    public function getPoBox(): ?string
+    {
+        return $this->poBox;
+    }
+
+    public function setPoBox(?string $poBox): void
+    {
+        $this->poBox = $poBox;
+    }
+
+    public function getStateProvinceCode(): ?string
+    {
+        return $this->stateProvinceCode;
+    }
+
+    public function setStateProvinceCode(?string $stateProvinceCode): void
+    {
+        $this->stateProvinceCode = $stateProvinceCode;
+    }
+
+    public function getEmail(): ?string
+    {
+        return $this->email;
+    }
+
+    public function setEmail(?string $email): void
+    {
+        $this->email = $email;
+    }
+
+    public function getPhoneNumber(): ?string
+    {
+        return $this->phoneNumber;
+    }
+
+    public function setPhoneNumber(?string $phoneNumber): void
+    {
+        $this->phoneNumber = $phoneNumber;
+    }
+
+    public function fields(): array
     {
         return [
             'name',
-            'address',
-            'address_2' => 'address2',
-            'city',
-            'company_name' => 'companyName',
-            'country' => 'country',
+            'address_line_1' => 'addressLine1',
             'postal_code' => 'postalCode',
-            'telephone' => 'telephone',
-            'country_state' => 'countryState',
+            'city',
+            'country_code' => 'countryCode',
+            'company_name' => 'companyName',
             'house_number' => 'houseNumber',
+            'address_line_2' => 'addressLine2',
+            'po_box' => 'poBox',
+            'state_province_code' => 'stateProvinceCode',
+            'email',
+            'phone_number' => 'phoneNumber',
         ];
     }
 }

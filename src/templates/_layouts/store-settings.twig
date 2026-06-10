@@ -30,7 +30,7 @@
                 <a href="{{ url('commerce-sendcloud/store-settings/' ~ storeHandle) }}"{% if selectedItem == 'integration' %} class="sel"{% endif %}>{{ "Integration"|t('commerce-sendcloud') }}</a>
             </li>
             <li>
-                <a href="{{ url('commerce-sendcloud/store-settings/' ~ storeHandle ~ '/shipping-methods') }}"{% if selectedItem == 'shipping-methods' %} class="sel"{% endif %}>{{ "Shipping Methods"|t('commerce-sendcloud') }}</a>
+                <a href="{{ url('commerce-sendcloud/store-settings/' ~ storeHandle ~ '/shipping-options') }}"{% if selectedItem == 'shipping-options' %} class="sel"{% endif %}>{{ "Shipping Options"|t('commerce-sendcloud') }}</a>
             </li>
         </ul>
     </nav>

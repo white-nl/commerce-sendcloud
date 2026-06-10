@@ -24,7 +24,7 @@ return [
         //'applyShippingRules' => true,
 
         // Select the format in which the shipping labels should be printed.
-        //'labelFormat' => white\commerce\sendcloud\enums\LabelFormat\LabelFormat::FORMAT_A6
+        //'labelFormat' => white\commerce\sendcloud\enums\LabelFormat\LabelFormat::FORMAT_A6->value
 
         // Select the Craft Commerce product field containing the HS product codes. HS codes are required for shipping outside the EU.
         //'hsCodeFieldHandle' => null,

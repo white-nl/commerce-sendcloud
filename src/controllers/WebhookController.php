@@ -8,7 +8,6 @@ use craft\commerce\Plugin as CommercePlugin;
 use craft\errors\ElementNotFoundException;
 use craft\web\Controller;
 use white\commerce\sendcloud\enums\ParcelStatus;
-use white\commerce\sendcloud\models\Parcel;
 use white\commerce\sendcloud\SendcloudPlugin;
 use yii\base\Exception;
 use yii\base\InvalidConfigException;
@@ -104,41 +103,53 @@ class WebhookController extends Controller
                         SendcloudPlugin::getInstance()->log("Not a status change or is return: skipped");
                         return;
                     }
-                    $parcel = Parcel::fromData($parcelData);
+                    $parcelId = $parcelData['id'];
+                    $parcelOrderNumber = (int)$parcelData['order_number'];
 
                     $mutex = Craft::$app->getMutex();
-                    $lockName = 'sendcloud:orderWebhook:' . $parcel->getOrderNumber();
+                    $lockName = 'sendcloud:orderWebhook:' . $parcelOrderNumber;
                     if (!$mutex->acquire($lockName, 5)) {
-                        throw new \RuntimeException("Unable to acquire a lock for Sendcloud webhook: '{$lockName}'.");
+                        throw new \RuntimeException("Unable to acquire a lock for Sendcloud webhook: '$lockName'.");
                     }
 
                     try {
-                        $status = SendcloudPlugin::getInstance()->orderSync->getOrderSyncStatusByParcelId($parcel->getId());
+                        $status = SendcloudPlugin::getInstance()->orderSync->getOrderSyncStatusByParcelId($parcelId);
                         if (!$status) {
-                            SendcloudPlugin::getInstance()->log("Parcel #{$parcel->getId()} not found. Trying to find by order #{$parcel->getOrderNumber()}");
-                            $status = SendcloudPlugin::getInstance()->orderSync->getOrderSyncStatusByOrderId((int)$parcel->getOrderNumber());
+                            SendcloudPlugin::getInstance()->log("Parcel #$parcelId not found. Trying to find by order #$parcelOrderNumber");
+                            $status = SendcloudPlugin::getInstance()->orderSync->getOrderSyncStatusByOrderId($parcelOrderNumber);
                             if (!$status) {
-                                SendcloudPlugin::getInstance()->log("Order status change skipped: parcel #{$parcel->getId()} not found.");
+                                SendcloudPlugin::getInstance()->log("Order status change skipped: parcel #$parcelId not found.");
                                 return;
                             }
                         }
 
                         if ($timestamp < $status->lastWebhookTimestamp) {
-                            SendcloudPlugin::getInstance()->log("Received late webhook for parcel #{$parcel->getId()}. Ignoring.");
+                            SendcloudPlugin::getInstance()->log("Received late webhook for parcel #$parcelId. Ignoring.");
                             return;
                         }
 
-                        $status->fillFromParcel($parcel);
+                        $parcelStatus = ParcelStatus::tryFrom($parcelData['status']['id']);
+                        $status->parcelId = $parcelId;
+                        $status->parcelStatus = $parcelStatus;
+                        $carrier = $parcelData['carrier']['code'] ?? null;
+                        if ($carrier) {
+                            $status->carrier = $carrier;
+                        }
+                        $trackingNumber = $parcelData['tracking_number'] ?? null;
+                        if ($trackingNumber) {
+                            $status->trackingNumber = $trackingNumber;
+                            $status->trackingUrl = $parcelData['tracking_url'] ?? null;
+                        }
+
                         $status->lastWebhookTimestamp = $timestamp;
                         if (!SendcloudPlugin::getInstance()->orderSync->saveOrderSyncStatus($status)) {
                             throw new \RuntimeException("Could not save order sync status: " . VarDumper::dumpAsString($status->errors));
                         }
 
-                        $settings = SendcloudPlugin::getInstance()->getSettings();
                         $statusMapping = SendcloudPlugin::getInstance()->statusMapping->getStatusMappingByStoreId($storeId);
                         if ($statusMapping->canChangeOrderStatus()) {
                             foreach ($statusMapping->orderStatusMapping as $mapping) {
-                                if ($mapping['sendcloud'] == $parcel->getParcelStatus()->value) {
+                                if ($mapping['sendcloud'] == $parcelStatus->value) {
                                     $order = $status->getOrder();
                                     if ($order) {
                                         $orderStatus = CommercePlugin::getInstance()->getOrderStatuses()->getOrderStatusByHandle($mapping['craft'], $storeId);

@@ -48,11 +48,11 @@ class Settings extends Model
     public int $createLabelJobPriority = 1024;
 
     /**
-     * @var int The format of the shipping label to be downloaded
+     * @var string The format of the shipping label to be downloaded
      *
      * @sine 4.0.0
      */
-    public int $labelFormat = LabelFormat::FORMAT_A6->value;
+    public string $labelFormat = LabelFormat::FORMAT_A6->value;
 
     /**
      * @var bool|string Whether to apply shipping rules provided in Sendcloud to match shipping methods
@@ -60,6 +60,13 @@ class Settings extends Model
      * @since 4.0.0
      */
     public bool|string $applyShippingRules = true;
+
+    /**
+     * @var bool|string Wheter to skip orders that have an unmapped shipping method when automatically pushing orders to Sendcloud
+     *
+     * @since 5.0.0
+     */
+    public bool|string $skipUnmappedShippingMethods = true;
 
     /**
      * @inheritdoc
@@ -94,8 +101,18 @@ class Settings extends Model
         $this->applyShippingRules = $applyShippingRules;
     }
 
+    public function isSkipUnmappedShippingMethods(bool $parse = true): bool|string
+    {
+        return $parse ? App::parseBooleanEnv($this->skipUnmappedShippingMethods) : $this->skipUnmappedShippingMethods;
+    }
+
+    public function setSkipUnmappedShippingMethods(bool|string $skipUnmappedShippingMethods): void
+    {
+        $this->skipUnmappedShippingMethods = $skipUnmappedShippingMethods;
+    }
+
     public function getLabelFormat(): LabelFormat
     {
-        return LabelFormat::from($this->labelFormat);
+        return LabelFormat::fromSettingValue($this->labelFormat);
     }
 }

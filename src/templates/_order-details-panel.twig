@@ -2,7 +2,7 @@
 <div class="order-meta-container">
     <div class="meta read-only">
         <h4>{{ "Sendcloud"|t('commerce-sendcloud') }}</h4>
-        
+
         {% if status and status.parcelId %}
             <div class="data">
                 <h5 class="heading">{{ "Parcel Number"|t('commerce-sendcloud') }}</h5>
@@ -60,24 +60,24 @@
                 </p>
             </div>
         {% endif %}
-        
+
         <div class="sendcloud-actions">
             {% if order.isCompleted %}
                 {% if currentUser.can('commerce-sendcloud-pushOrders') %}
-                    <button type="button" class="sendcloud-order-action btn-default btn" data-action="commerce-sendcloud/cp/parcel/push" data-order-id="{{ order.Id }}">
+                    <button type="button" class="sendcloud-order-action btn-default btn" data-action="commerce-sendcloud/cp/order/push" data-order-id="{{ order.Id }}">
                         {{ "Push to Sendcloud"|t('commerce-sendcloud') }}
                     </button>
                 {% endif %}
-                {% if status and status.isPushed() %}
+                {% if status %}
                     {% if currentUser.can('commerce-sendcloud-printLabels') %}
-                        <button type="button" class="sendcloud-order-action btn-default btn" data-action="commerce-sendcloud/cp/parcel/print-label" data-order-id="{{ order.Id }}" data-target="_blank">
+                        <button type="button" class="sendcloud-order-action btn-default btn" data-action="commerce-sendcloud/cp/order/print-label" data-order-id="{{ order.Id }}" data-target="_blank">
                             {{ "Print Label"|t('commerce-sendcloud') }}
                         </button>
                     {% endif %}
                 {% endif %}
             {% endif %}
         </div>
-        
+
     </div>
 </div>
 

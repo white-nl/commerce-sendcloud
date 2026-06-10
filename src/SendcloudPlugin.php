@@ -23,8 +23,8 @@ use white\commerce\sendcloud\exception\SendcloudRequestException;
 use white\commerce\sendcloud\models\Settings;
 use white\commerce\sendcloud\plugin\Routes;
 use white\commerce\sendcloud\services\Integrations;
+use white\commerce\sendcloud\services\OrderItems;
 use white\commerce\sendcloud\services\OrderSync;
-use white\commerce\sendcloud\services\ParcelItems;
 use white\commerce\sendcloud\services\SendcloudApi;
 use white\commerce\sendcloud\services\StatusMapping;
 use white\commerce\sendcloud\variables\SendcloudVariable;
@@ -35,7 +35,7 @@ use yii\log\Logger;
 /**
  * @property Integrations $integrations
  * @property OrderSync $orderSync
- * @property ParcelItems $parcelItems
+ * @property OrderItems $orderItems
  * @property StatusMapping $statusMapping
  * @property-read mixed $settingsResponse
  * @property-read null|array $cpNavItem
@@ -53,7 +53,7 @@ class SendcloudPlugin extends Plugin
             'components' => [
                 'integrations' => ['class' => Integrations::class],
                 'orderSync' => ['class' => OrderSync::class],
-                'parcelItems' => ['class' => ParcelItems::class],
+                'orderItems' => ['class' => OrderItems::class],
                 'sendcloudApi' => ['class' => SendcloudApi::class],
                 'statusMapping' => ['class' => StatusMapping::class],
             ],

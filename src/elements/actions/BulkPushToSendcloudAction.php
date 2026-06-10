@@ -29,7 +29,7 @@ class BulkPushToSendcloudAction extends ElementAction
             $('<input/>', {
                 type: 'hidden',
                 name: 'action',
-                value: 'commerce-sendcloud/cp/parcel/bulk-push'
+                value: 'commerce-sendcloud/cp/order/bulk-push'
             }).appendTo(\$form);
             \$selectedItems.each(function() {
                 $('<input/>', {

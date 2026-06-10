@@ -19,11 +19,11 @@
         "handle": "commerce-sendcloud",
         "name": "Sendcloud",
         "developer": "Digital Agency WHITE",
-        "developerUrl": "https://white.nl/en/",
+        "developerUrl": "https://whitedigital.com",
         "hasCpSettings": true,
         "hasCpSection": true,
         "class": "white\\commerce\\sendcloud\\SendcloudPlugin",
-        "documentationUrl": "https://white.nl/en/craft-plugins/sendcloud/docs/"
+        "documentationUrl": "https://user-guide.white.nl/sendcloud/"
     },
     "minimum-stability": "dev",
     "prefer-stable": true,
@@ -40,6 +40,9 @@
         "allow-plugins": {
             "yiisoft/yii2-composer": true,
             "craftcms/plugin-installer": true
+        },
+        "platform": {
+            "php": "8.2"
         },
         "sort-packages": true,
         "optimize-autoloader": true

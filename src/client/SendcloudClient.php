@@ -2,13 +2,9 @@
 
 namespace white\commerce\sendcloud\client;
 
-use CommerceGuys\Addressing\Country\CountryRepository;
 use Craft;
-use craft\base\Element;
-use craft\commerce\base\PurchasableInterface;
 use craft\commerce\elements\Order;
-use craft\commerce\elements\Variant;
-use craft\commerce\Plugin as Commerce;
+use craft\commerce\models\Store;
 use craft\helpers\ArrayHelper;
 use craft\helpers\Json;
 use GuzzleHttp\Client;
@@ -16,17 +12,13 @@ use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Exception\TransferException;
 use GuzzleHttp\RequestOptions;
 use GuzzleHttp\Utils;
-use Illuminate\Support\Collection;
 use white\commerce\sendcloud\enums\LabelFormat;
-use white\commerce\sendcloud\events\AddressEvent;
-use white\commerce\sendcloud\events\ParcelEvent;
 use white\commerce\sendcloud\exception\SendcloudRequestException;
 use white\commerce\sendcloud\exception\SendcloudStateException;
-use white\commerce\sendcloud\models\Address;
 use white\commerce\sendcloud\models\Integration;
+use white\commerce\sendcloud\models\Order as SendcloudOrder;
 use white\commerce\sendcloud\models\OrderSyncStatus;
-use white\commerce\sendcloud\models\Parcel;
-use white\commerce\sendcloud\models\ShippingMethod;
+use white\commerce\sendcloud\models\ShippingOption;
 use white\commerce\sendcloud\SendcloudPlugin;
 use yii\base\Component;
 
@@ -35,19 +27,12 @@ use yii\base\Component;
  */
 class SendcloudClient extends Component
 {
-    protected const API_BASE_URL = 'https://panel.sendcloud.sc/api/v2/';
+    protected const API_BASE_URL = 'https://panel.sendcloud.sc/api/v3/';
+    protected const API_BASE_URL_V2 = 'https://panel.sendcloud.sc/api/v2/';
 
     protected Client $guzzleClient;
 
-    private ?array $sendcloudShippingMethods = null;
-
-    /**
-     * @var string Event emitted before the Sendcloud address is created
-     */
-    public const EVENT_AFTER_CREATE_ADDRESS = 'afterCreateAddress';
-
-    /** @var string Event emitted before the Sendcloud parcel is pushed */
-    public const EVENT_BEFORE_PUSH_PARCEL = 'beforePushParcel';
+    private ?array $sendcloudShippingOptions = null;
 
     /**
      * SendcloudClient constructor.
@@ -91,7 +76,7 @@ class SendcloudClient extends Component
     public function updateIntegration(Integration $integration, string $shopName): bool
     {
         try {
-            $this->guzzleClient->put("integrations/{$integration->externalId}", [
+            $this->guzzleClient->patch("integrations/{$integration->externalId}", [
                 RequestOptions::JSON => [
                     'shop_name' => $shopName,
                     'shop_url' => $integration->shopUrl,
@@ -121,136 +106,105 @@ class SendcloudClient extends Component
     }
 
     /**
-     * @param int $storeId
-     * @return ShippingMethod[]
+     * @param Store $store
+     * @return ShippingOption[]
      */
-    public function getShippingMethods(int $storeId): array
+    public function getShippingOptions(Store $store): array
     {
-        if (!$this->sendcloudShippingMethods) {
-            $this->sendcloudShippingMethods = \Craft::$app->getCache()->getOrSet("sendcloud-shipping-methods-$storeId", function() {
-                $response = $this->guzzleClient->get('shipping_methods');
-                $shippingMethodsData = Json::decodeIfJson($response->getBody(), true)['shipping_methods'];
+        if (!$this->sendcloudShippingOptions) {
+            $this->sendcloudShippingOptions = \Craft::$app->getCache()->getOrSet("sendcloud-shipping-options-$store->id", function() use ($store) {
+                $storeCountry = $store->getSettings()->getLocationAddress()->getCountryCode();
+                $response = $this->guzzleClient->post('shipping-options', [
+                    'body' => Json::encode([
+                        'from_address' => [
+                            'country_code' => $storeCountry,
+                        ],
+                    ]),
+                ]);
+                $shippingOptionsData = Json::decodeIfJson($response->getBody(), true)['data'];
 
-                $shippingMethods = array_map(fn(array $shippingMethodData) => (
-                    ShippingMethod::fromArray($shippingMethodData)
-                ), $shippingMethodsData);
+                $shippingOptions = array_map(fn(array $shippingOptionData) => (
+                    ShippingOption::fromArray($shippingOptionData)
+                ), $shippingOptionsData);
 
                 // Sort shipping methods by carrier and name
-                usort($shippingMethods, function(ShippingMethod $shippingMethod1, ShippingMethod $shippingMethod2) {
-                    if ($shippingMethod1->getCarrier() !== $shippingMethod2->getCarrier()) {
-                        return strcasecmp($shippingMethod1->getCarrier(), $shippingMethod2->getCarrier());
+                usort($shippingOptions, function(ShippingOption $shippingOption1, ShippingOption $shippingOption2) {
+                    if ($shippingOption1->getCarrier() !== $shippingOption2->getCarrier()) {
+                        return strcasecmp($shippingOption1->getCarrier(), $shippingOption1->getCarrier());
                     }
 
-                    return strcasecmp($shippingMethod1->getName(), $shippingMethod2->getName());
+                    return strcasecmp($shippingOption1->getName(), $shippingOption2->getName());
                 });
 
                 return ArrayHelper::map(
-                    $shippingMethods,
-                    static fn(ShippingMethod $shippingMethod) => $shippingMethod->getName(),
-                    static fn(ShippingMethod $shippingMethod) => $shippingMethod,
+                    $shippingOptions,
+                    static fn(ShippingOption $shippingOption) => $shippingOption->getName(),
+                    static fn(ShippingOption $shippingOption) => $shippingOption,
                 );
             }, 3600);
         }
 
-        return $this->sendcloudShippingMethods;
+        return $this->sendcloudShippingOptions;
     }
 
-    /**
-     * Get a Sendcloud parcel by ID
-     * @param int $parcelId
-     * @return Parcel
-     * @throws SendcloudRequestException
-     * @throws \GuzzleHttp\Exception\GuzzleException
-     */
-    public function getParcel(int $parcelId): Parcel
+    public function pushOrder(SendcloudOrder $order): bool
     {
         try {
-            $response = $this->guzzleClient->get("parcels/$parcelId");
-            return Parcel::fromData(Json::decodeIfJson($response->getBody())['parcel']);
-        } catch (TransferException $exception) {
-            throw (new SendcloudRequestException())->parseGuzzleException($exception, Craft::t('commerce-sendcloud', 'Failed to get Parcel'));
-        }
-    }
-
-    /**
-     * Create a Sendcloud parcel
-     * @param Order $order
-     * @param int|null $servicePointId
-     * @return Parcel
-     * @throws \GuzzleHttp\Exception\GuzzleException
-     * @throws \Throwable
-     */
-    public function createParcel(Order $order, ?int $servicePointId = null): Parcel
-    {
-        $parcel = $this->_createParcelData($order, $servicePointId);
-        try {
-            $response = $this->guzzleClient->post('parcels', [
+            $this->guzzleClient->post('orders', [
                 RequestOptions::JSON => [
-                    'parcel' => $parcel,
+                    $order->toArray(),
                 ],
             ]);
 
-            return Parcel::fromData(Json::decodeIfJson($response->getBody())['parcel']);
+            return true;
         } catch (TransferException $exception) {
-            throw (new SendcloudRequestException())->parseGuzzleException($exception, Craft::t('commerce-sendcloud', 'Failed to create Parcel'));
+            throw (new SendcloudRequestException())->parseGuzzleException($exception, Craft::t('commerce-sendcloud', 'Failed to push Order'));
         }
     }
 
     /**
-     * Update a Sendcloud parcel
-     * @param OrderSyncStatus $orderSyncStatus
+     * Create a shipping label for a Order
      * @param Order $order
-     * @return Parcel
-     * @throws \GuzzleHttp\Exception\GuzzleException
-     * @throws \Throwable
-     */
-    public function updateParcel(OrderSyncStatus $orderSyncStatus, Order $order): Parcel
-    {
-        $parcelId = $orderSyncStatus->parcelId;
-        $parcel = $this->_createParcelData($order, $orderSyncStatus->servicePointId);
-
-        try {
-            $parcel['id'] = $parcelId;
-            $response = $this->guzzleClient->put('parcels', [
-                RequestOptions::JSON => [
-                    'parcel' => $parcel,
-                ],
-            ]);
-
-            return Parcel::fromData(Json::decodeIfJson($response->getBody())['parcel']);
-        } catch (TransferException $exception) {
-            throw (new SendcloudRequestException())->parseGuzzleException($exception, Craft::t('commerce-sendcloud', 'Failed to update Parcel'));
-        }
-    }
-
-    /**
-     * Create a shipping label for a parcel
-     * @param Order $order
-     * @param int $parcelId
-     * @return Parcel
      * @throws \GuzzleHttp\Exception\GuzzleException
      * @throws \Throwable
      * @throws \yii\base\InvalidConfigException
      */
-    public function createLabel(Order $order, int $parcelId): Parcel
+    public function createLabel(Order $order): ?array
     {
-        $store = $order->getStore();
-        $shippingMethods = $this->getShippingMethods($store->id);
-        if (!array_key_exists($order->shippingMethodName, $shippingMethods)) {
-            throw new \RuntimeException(\Craft::t('commerce-sendcloud', "Could not find Sendcloud shipping method '{method}'", ['method' => $order->shippingMethodName]));
-        }
-        $status = SendcloudPlugin::getInstance()->orderSync->getOrCreateOrderSyncStatus($order);
-        $parcel = $this->_createParcelData($order, $status->getServicePointId(), requestLabel: true);
-        $parcel['id'] = $parcelId;
+        $integration = SendcloudPlugin::getInstance()->integrations->getIntegrationByStoreId($order->storeId);
+        $response = $this->createLabels(
+            [$order->number],
+            $integration->externalId,
+            SendcloudPlugin::getInstance()->getSettings()->isApplyShippingRules(),
+        );
+
+        return $response['data'][0] ?? null;
+    }
+
+    /**
+     * Create shipping labels for multiple orders.
+     * @param string[] $orderNumbers
+     * @param int $integrationId
+     * @param bool $applyShippingRules
+     * @return array{data: array<int, array<string, mixed>>, errors?: array<int, array<string, mixed>>}
+     * @throws SendcloudRequestException
+     */
+    public function createLabels(array $orderNumbers, int $integrationId, bool $applyShippingRules = false): array
+    {
+        $orders = array_map(static fn(string $orderNumber) => [
+            'order_id' => $orderNumber,
+            'apply_shipping_rules' => $applyShippingRules,
+        ], $orderNumbers);
 
         try {
-            $response = $this->guzzleClient->put('parcels', [
+            $response = $this->guzzleClient->post('orders/create-labels-async', [
                 RequestOptions::JSON => [
-                    'parcel' => $parcel,
+                    'integration_id' => $integrationId,
+                    'orders' => $orders,
                 ],
             ]);
 
-            return Parcel::fromData(Json::decodeIfJson($response->getBody())['parcel']);
+            return Json::decodeIfJson($response->getBody());
         } catch (TransferException $exception) {
             throw (new SendcloudRequestException())->parseGuzzleException($exception, Craft::t('commerce-sendcloud', 'Failed to create Label'));
         }
@@ -258,62 +212,43 @@ class SendcloudClient extends Component
 
     /**
      * Get the shipping label in PDF format
-     * @param Parcel|int $parcel
+     * @param OrderSyncStatus $status
      * @param LabelFormat|null $format
      * @return string
      * @throws SendcloudRequestException
      * @throws SendcloudStateException
      * @throws \GuzzleHttp\Exception\GuzzleException
      */
-    public function getLabelPdf(Parcel|int $parcel, ?LabelFormat $format = null): string
+    public function getLabelPdf(OrderSyncStatus $status, ?LabelFormat $format = null): string
     {
-        if (is_int($parcel)) {
-            $parcel = $this->getParcel($parcel);
-        }
-
         if ($format === null) {
             $settings = SendcloudPlugin::getInstance()->getSettings();
             $format = $settings->getLabelFormat();
         }
-
-        $labelUrl = $parcel->getLabelUrl($format);
-
-        if (!$labelUrl) {
-            throw new SendcloudStateException(Craft::t('commerce-sendcloud', 'Sendcloud parcel does not have any labels.'));
-        }
-
         try {
-            return (string)$this->guzzleClient->get($labelUrl)->getBody();
+            $response = $this->guzzleClient->get('parcels/' . $status->parcelId . '/documents/label?paper_size=' . $format->value, [
+                RequestOptions::HEADERS => [
+                    'Accept' => 'application/pdf',
+                ],
+            ]);
+            return $response->getBody()->getContents();
         } catch (TransferException $exception) {
-            throw (new SendcloudRequestException())->parseGuzzleException($exception, Craft::t('commerce-sendcloud', 'Failed to get label PDF'));
+            throw (new SendcloudRequestException())->parseGuzzleException($exception, Craft::t('commerce-sendcloud', 'Failed to get Label'));
         }
     }
 
     /**
-     * @param array<int|Parcel> $parcels
+     * @param array<int> $parcelIds
      * @param LabelFormat|null $format
      * @return string
      * @throws SendcloudRequestException
      * @throws SendcloudStateException
      * @throws \GuzzleHttp\Exception\GuzzleException
      */
-    public function getLabelsPdf(array $parcels, ?LabelFormat $format = null): string
+    public function getLabelsPdf(array $parcelIds, ?LabelFormat $format = null): string
     {
-        $parcelIds = [];
-        foreach ($parcels as $parcel) {
-            $parcelIds[] = is_int($parcel) ? $parcel : $parcel->getId();
-        }
-
-        try {
-            $response = $this->guzzleClient->post('labels', [
-                RequestOptions::JSON => [
-                    'label' => [
-                        'parcels' => $parcelIds,
-                    ],
-                ],
-            ]);
-        } catch (TransferException $exception) {
-            throw (new SendcloudRequestException())->parseGuzzleException($exception, Craft::t('commerce-sendcloud', "Failed to get label PDF's"));
+        if (empty($parcelIds)) {
+            throw new SendcloudStateException('No parcels were provided to download labels for.');
         }
 
         if ($format === null) {
@@ -321,25 +256,27 @@ class SendcloudClient extends Component
             $format = $settings->getLabelFormat();
         }
 
-        $labelData = Json::decodeIfJson($response->getBody());
-        $labelUrl = $format->getUrl($labelData);
-        if (!$labelUrl) {
-            throw new SendcloudStateException('No label URL could be obtained from the response.');
+        $query = ['paper_size=' . $format->value];
+        foreach ($parcelIds as $parcelId) {
+            $query[] = 'parcels=' . urlencode((string)$parcelId);
         }
 
         try {
-            return (string)$this->guzzleClient->get($labelUrl)->getBody();
+            $response = $this->guzzleClient->get('parcel-documents/label?' . implode('&', $query), [
+                RequestOptions::HEADERS => [
+                    'Accept' => 'application/pdf',
+                ],
+            ]);
+            return $response->getBody()->getContents();
         } catch (TransferException $exception) {
-            throw (new SendcloudRequestException())->parseGuzzleException($exception, Craft::t('commerce-sendcloud', 'Failed to get label PDF'));
+            throw (new SendcloudRequestException())->parseGuzzleException($exception, Craft::t('commerce-sendcloud', "Failed to get label PDF's"));
         }
     }
 
-    public function getReturnPortalUrl(Parcel|int $parcel): ?string
+    public function getReturnPortalUrl(int $parcelId): ?string
     {
         try {
-            $parcelId = is_int($parcel) ? $parcel : $parcel->getId();
-
-            $response = $this->guzzleClient->get("parcels/$parcelId/return_portal_url");
+            $response = $this->guzzleClient->get(self::API_BASE_URL_V2 . "parcels/$parcelId/return_portal_url");
             return Json::decodeIfJson($response->getBody())['url'];
         } catch (RequestException $exception) {
             if ($exception->getResponse() && $exception->getResponse()->getStatusCode() === 404) {
@@ -348,160 +285,5 @@ class SendcloudClient extends Component
 
             throw $exception;
         }
-    }
-
-    private function _createParcelData(Order $order, ?int $servicePointId = null, bool $requestLabel = false): array
-    {
-        $store = $order->getStore();
-        $settings = SendcloudPlugin::getInstance()->getSettings();
-        $address = $this->_createAddress($order);
-
-        $weight = $this->_getOrderWeightInKg($order);
-
-        $items = [];
-        $parcelItems = SendcloudPlugin::getInstance()->parcelItems;
-        foreach ($order->getLineItems() as $lineItem) {
-            $purchasable = $lineItem->getPurchasable();
-
-            if ($settings->useInventoryItemCodes) {
-                $inventoryItem = Commerce::getInstance()->getInventory()->getInventoryItemByPurchasable($purchasable);
-                $hsSystemCode = $inventoryItem->harmonizedSystemCode;
-                $originCountryCode = $inventoryItem->countryCodeOfOrigin;
-            } else {
-                if ($settings->hsCodeFieldHandle) {
-                    $hsSystemCode = $this->_tryGetProductField($purchasable, $settings->hsCodeFieldHandle);
-                }
-                if ($settings->originCountryFieldHandle) {
-                    $originCountryCode = $this->_tryGetProductField($purchasable, $settings->originCountryFieldHandle);
-                }
-            }
-
-            $params = [
-                'hsCode' => $hsSystemCode ?? null,
-                'originCountry' => $originCountryCode ?? null,
-            ];
-
-            $items[] = $parcelItems->createFromLineItem($lineItem, $params);
-        }
-
-        $statusMapping = SendcloudPlugin::getInstance()->statusMapping->getStatusMappingByStoreId($store->id);
-        $orderNumberTemplate = $statusMapping->orderNumberFormat;
-
-        try {
-            $vars = ['order' => $order];
-            $orderNumber = \Craft::$app->getView()->renderString($orderNumberTemplate, $vars);
-        } catch (\Throwable $exception) {
-            Craft::error('Unable to generate Sendcloud order reference for Order ID: ' . $order->getId() . ', with format: ' . $orderNumberTemplate . ', error: ' . $exception->getMessage());
-            throw $exception;
-        }
-
-        $parcel = \Craft::createObject(Parcel::class);
-        $parcel->setApplyShippingRules($settings->isApplyShippingRules());
-        $parcel->setRequestLabel($requestLabel);
-
-        $parcel->setAddress($address);
-        $parcel->setEmail($order->getEmail());
-        $parcel->setOrderNumber($orderNumber);
-        $parcel->setWeight($weight);
-        $parcel->setParcelItems($items);
-
-        $sendcloudShippingMethod = $this->getShippingMethods($store->id)[$order->shippingMethodName] ?? null;
-        if ($sendcloudShippingMethod) {
-            $parcel->setShippingMethod($sendcloudShippingMethod);
-            $parcel->setShippingMethodCheckoutName($order->shippingMethodName);
-            if ($sendcloudShippingMethod->isServicePointInputRequired()) {
-                $parcel->setToServicePoint($servicePointId);
-            }
-        }
-
-        $parcel->setTotalOrderValue((string)$order->getTotalPaid());
-        $parcel->setTotalOrderValueCurrency($order->getPaymentCurrency());
-
-        $parcelEvent = new ParcelEvent([
-            'parcel' => $parcel,
-            'order' => $order,
-        ]);
-
-        if ($this->hasEventHandlers(self::EVENT_BEFORE_PUSH_PARCEL)) {
-            $this->trigger(self::EVENT_BEFORE_PUSH_PARCEL, $parcelEvent);
-        }
-
-        return array_filter($parcel->toArray(), fn($value) => !is_null($value));
-    }
-
-    private function _createAddress(Order $order): Address
-    {
-        $shippingAddress = $order->getShippingAddress();
-        $settings = SendcloudPlugin::getInstance()->getSettings();
-        if ($settings->phoneNumberFieldHandle) {
-            $phoneNumber = $shippingAddress->getFieldValue($settings->phoneNumberFieldHandle);
-        }
-
-        $locality = $shippingAddress->getLocality();
-        $countryCode = $shippingAddress->getCountryCode();
-        if ($locality === null) {
-            $countryRepository = new CountryRepository();
-            $country = $countryRepository->get($countryCode);
-            $locality = $country->getName();
-        }
-
-        $address = new Address(
-            $shippingAddress->fullName ?: $shippingAddress->getGivenName() . ' ' . $shippingAddress->getFamilyName(),
-            $shippingAddress->getAddressLine1(),
-            $locality,
-            $shippingAddress->getPostalCode(),
-            $countryCode,
-            $shippingAddress->getOrganization(),
-        $shippingAddress->getAddressLine2() ?? '',
-            null,
-        $phoneNumber ?? null,
-            $shippingAddress->getAdministrativeArea(),
-        );
-
-        $addressEvent = new AddressEvent([
-            'shippingAddress' => $shippingAddress,
-            'address' => $address,
-        ]);
-
-        if ($this->hasEventHandlers(self::EVENT_AFTER_CREATE_ADDRESS)) {
-            $this->trigger(self::EVENT_AFTER_CREATE_ADDRESS, $addressEvent);
-        }
-
-        return $address;
-    }
-
-    private function _tryGetProductField(PurchasableInterface $purchasable, string $fieldHandle): ?string
-    {
-        if ($purchasable instanceof Element) {
-            if ($purchasable->getFieldLayout()->isFieldIncluded($fieldHandle)) {
-                return $purchasable->getFieldValue($fieldHandle);
-            }
-
-            if ($purchasable instanceof Variant) {
-                $product = $purchasable->getOwner();
-                if ($product?->getFieldLayout()->isFieldIncluded($fieldHandle)) {
-                    return $product->getFieldValue($fieldHandle);
-                }
-            }
-        }
-
-        return null;
-    }
-
-    private function _getOrderWeightInKg(Order $order): ?string
-    {
-        $weight = $order->getTotalWeight();
-        if ($weight <= 0) {
-            return null;
-        }
-
-        $weightUnit = Commerce::getInstance()->getSettings()->weightUnits;
-        $totalWeight = match ($weightUnit) {
-            'g' => $weight / 1000,
-            'lb' => $weight * 0.453,
-            default => $weight,
-        };
-
-        return (string)$totalWeight;
     }
 }

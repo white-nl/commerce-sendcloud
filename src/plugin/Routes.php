@@ -35,7 +35,7 @@ trait Routes
                 // Store settings
                 $event->rules['commerce-sendcloud/store-settings'] = 'commerce-sendcloud/cp/store-settings/index'; // Redirects to the first store
                 $event->rules['commerce-sendcloud/store-settings/<storeHandle:{handle}>'] = 'commerce-sendcloud/cp/store-settings/integration';
-                $event->rules['commerce-sendcloud/store-settings/<storeHandle:{handle}>/shipping-methods'] = 'commerce-sendcloud/cp/store-settings/shipping-methods';
+                $event->rules['commerce-sendcloud/store-settings/<storeHandle:{handle}>/shipping-options'] = 'commerce-sendcloud/cp/store-settings/shipping-options';
             }
         );
     }

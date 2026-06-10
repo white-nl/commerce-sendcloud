@@ -39,7 +39,7 @@ class StoreSettingsController extends Controller
 
         if ($user->checkPermission('commerce-sendcloud-manageStoreSettings')) {
             $store = $site->getStore();
-            return $this->redirect("commerce-sendcloud/store-settings/$store->handle/shipping-methods");
+            return $this->redirect("commerce-sendcloud/store-settings/$store->handle/shipping-options");
         }
 
         throw new ForbiddenHttpException();
@@ -144,10 +144,17 @@ class StoreSettingsController extends Controller
             return $this->redirectToPostedUrl();
         }
 
-        $client = SendcloudPlugin::getInstance()->sendcloudApi->getClient($storeId);
-        if ($client->removeIntegration($integration->externalId)) {
-            $integrationService->deleteIntegrationById($integration->id);
+        try {
+            $client = SendcloudPlugin::getInstance()->sendcloudApi->getClient($storeId);
+            if ($client->removeIntegration($integration->externalId)) {
+                $integrationService->deleteIntegrationById($integration->id);
 
+                Craft::$app->getSession()->setNotice(Craft::t('commerce-sendcloud', "Integration removed."));
+            }
+        } catch (\InvalidArgumentException) {
+            // when an InvalidArgumentException is thrown, most likely the integration in sendcloud failed,
+            // so remove the integration from the DB anyway.
+            $integrationService->deleteIntegrationById($integration->id);
             Craft::$app->getSession()->setNotice(Craft::t('commerce-sendcloud', "Integration removed."));
         }
 
@@ -187,7 +194,7 @@ class StoreSettingsController extends Controller
         ]);
     }
 
-    public function actionShippingMethods(?string $storeHandle = null): Response
+    public function actionShippingOptions(?string $storeHandle = null): Response
     {
         $variables = compact('storeHandle');
         $store = Commerce::getInstance()->getStores()->getStoreByHandle($storeHandle);
@@ -203,7 +210,7 @@ class StoreSettingsController extends Controller
         }
 
         $client = $sendcloudApiService->getClient($store->id);
-        $shippingMethods = $client->getShippingMethods($store->id);
+        $shippingOptions = $client->getShippingOptions($store);
 
         $craftShippingMethods = Commerce::getInstance()->getShippingMethods()->getAllShippingMethods($store->id);
         $craftShippingMethods = $craftShippingMethods->keyBy('name');
@@ -211,23 +218,17 @@ class StoreSettingsController extends Controller
         $craftCountries = $store->getSettings()->getCountriesList();
 
         $result = [];
-        foreach ($shippingMethods as $shippingMethod) {
-            $methodData = $shippingMethod;
-
-            if (!array_intersect(array_keys($craftCountries), array_values($shippingMethod->getCountries()))) {
-                continue;
+        foreach ($shippingOptions as $shippingOption) {
+            if ($craftShippingMethods->has($shippingOption->getName())) {
+                $shippingOption->setCraftMethodId($craftShippingMethods[$shippingOption->getName()]->id);
             }
 
-            if ($craftShippingMethods->has($methodData->getName())) {
-                $methodData->setCraftMethodId($craftShippingMethods[$methodData->getName()]->id);
-            }
-
-            $result[] = $methodData;
+            $result[] = $shippingOption;
         }
 
-        $variables['shippingMethods'] = $result;
+        $variables['shippingOptions'] = $result;
 
-        return $this->renderTemplate('commerce-sendcloud/store-settings/_shipping-methods', $variables);
+        return $this->renderTemplate('commerce-sendcloud/store-settings/_shipping-options', $variables);
     }
 
     /**
@@ -239,14 +240,11 @@ class StoreSettingsController extends Controller
      */
     private function _createWebhookUrl(Integration $integration): string
     {
-        $generalConfig = Craft::$app->getConfig()->getGeneral();
-        $webhookPath = 'commerce-sendcloud/webhook';
+        $webhookPath = '/commerce-sendcloud/webhook';
         $webhookArgs = [
             'id' => $integration->id,
             'sendcloudToken' => $integration->token,
         ];
-        return $generalConfig->pathParam
-            ? UrlHelper::cpUrl('', array_merge([$generalConfig->pathParam => $webhookPath], $webhookArgs))
-            : UrlHelper::cpUrl($webhookPath, $webhookArgs);
+        return UrlHelper::siteUrl($webhookPath, $webhookArgs);
     }
 }

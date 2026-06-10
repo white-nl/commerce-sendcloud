@@ -10,6 +10,7 @@ use craft\errors\SiteNotFoundException;
 use craft\helpers\ArrayHelper;
 use white\commerce\sendcloud\models\OrderSyncStatus;
 use white\commerce\sendcloud\models\ShippingMethod;
+use white\commerce\sendcloud\models\ShippingOption;
 use white\commerce\sendcloud\SendcloudPlugin;
 use white\commerce\sendcloud\services\Integrations;
 use white\commerce\sendcloud\services\OrderSync;
@@ -23,15 +24,15 @@ use white\commerce\sendcloud\services\SendcloudApi;
 class SendcloudVariable extends Component
 {
     private ?OrderSync $orderSync = null;
-    
+
     private ?SendcloudApi $sendcloudApi = null;
-    
+
     private ?Integrations $integrations = null;
 
     public function init(): void
     {
         parent::init();
-        
+
         $this->orderSync = SendcloudPlugin::getInstance()->orderSync;
         $this->sendcloudApi = SendcloudPlugin::getInstance()->sendcloudApi;
         $this->integrations = SendcloudPlugin::getInstance()->integrations;
@@ -50,15 +51,15 @@ class SendcloudVariable extends Component
     }
 
     /**
-     * Gets all available Sendcloud shipping methods.
+     * Gets all available Sendcloud shipping options.
      *
-     * @return array|ShippingMethod[]
+     * @return array|ShippingOption[]
      * @throws SiteNotFoundException
      */
-    public function getShippingMethods(?Store $store = null): array
+    public function getShippingOptions(?Store $store = null): array
     {
         $store = $store ?? Plugin::getInstance()->getStores()->getPrimaryStore();
-        return $this->sendcloudApi->getClient()->getShippingMethods($store->id);
+        return $this->sendcloudApi->getClient()->getShippingOptions($store);
     }
 
     /**
@@ -85,11 +86,11 @@ class SendcloudVariable extends Component
         if (!$status instanceof OrderSyncStatus) {
             return null;
         }
-        
+
         if ($carrier !== null && ArrayHelper::getValue($status->servicePoint, 'carrier') != $carrier) {
             return null;
         }
-        
+
         return $status->servicePoint;
     }
 
@@ -128,7 +129,7 @@ class SendcloudVariable extends Component
         if (!$status || !$status->isPushed()) {
             return null;
         }
-        
+
         return $this->sendcloudApi->getClient()->getReturnPortalUrl($status->parcelId);
     }
 }
