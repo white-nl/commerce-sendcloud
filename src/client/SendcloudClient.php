@@ -221,10 +221,37 @@ class SendcloudClient extends Component
      */
     public function getLabelPdf(OrderSyncStatus $status, ?LabelFormat $format = null): string
     {
+        if (!$status->isLabelCreated()) {
+            try {
+                $order = $status->getOrder();
+                $integration = SendcloudPlugin::getInstance()->integrations->getIntegrationByStoreId($order->storeId);
+                $response = $this->guzzleClient->post('orders/create-label-sync', [
+                    RequestOptions::JSON => [
+                        'integration_id' => $integration->externalId,
+                        'order' => [
+                            'order_id' => $order->number,
+                            'apply_shipping_rules' => SendcloudPlugin::getInstance()->getSettings()->isApplyShippingRules(),
+                        ],
+                    ],
+                ]);
+                $parcel = Json::decodeIfJson($response->getBody()->getContents());
+
+            } catch (TransferException $exception) {
+                throw (new SendcloudRequestException())->parseGuzzleException($exception, Craft::t('commerce-sendcloud', 'Failed to get Label'));
+            }
+
+            $file = $parcel['data'][0]['label']['file'] ?? null;
+            if ($file === null) {
+                throw (new SendcloudRequestException(Craft::t('commerce-sendcloud', 'Label file is missing in Sendcloud response')));
+            }
+            return base64_decode($file);
+        }
+
         if ($format === null) {
             $settings = SendcloudPlugin::getInstance()->getSettings();
             $format = $settings->getLabelFormat();
         }
+
         try {
             $response = $this->guzzleClient->get('parcels/' . $status->parcelId . '/documents/label?paper_size=' . $format->value, [
                 RequestOptions::HEADERS => [

@@ -1,5 +1,11 @@
 # Release Notes for Craft Sendcloud Plugin
 
+### Unreleased
+
+### Fixed
+
+ - Fixed an error when getting the shipping label for the first time ([#34](https://github.com/white-nl/commerce-sendcloud/issues/34)
+
 ## 5.0.0 - 2026-06-10
 
 ### Added

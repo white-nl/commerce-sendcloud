@@ -104,14 +104,6 @@ class OrderController extends Controller
             Craft::$app->getSession()->setError(Craft::t('commerce-sendcloud', "Order isn't pushed to sendcloud. Please push the order before trying to print the label."));
             return $this->redirectToPostedUrl();
         }
-
-        if (!$status->isLabelCreated()) {
-            if (!SendcloudPlugin::getInstance()->orderSync->createLabel($order)) {
-                Craft::$app->getSession()->setError(Craft::t('commerce-sendcloud', "Could not get Sendcloud label. Please check the error logs for more details."));
-                return $this->redirectToPostedUrl();
-            }
-            $status = SendcloudPlugin::getInstance()->orderSync->getOrderSyncStatusByOrderId($orderId);
-        }
         $label = SendcloudPlugin::getInstance()->orderSync->getLabel($status);
         return Craft::$app->getResponse()->sendContentAsFile(
             $label,
