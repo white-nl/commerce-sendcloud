@@ -104,19 +104,26 @@ class WebhookController extends Controller
                         return;
                     }
                     $parcelId = $parcelData['id'];
-                    $parcelOrderNumber = (int)$parcelData['order_number'];
+                    $parcelOrderId = $parcelData['external_order_id'];
 
                     $mutex = Craft::$app->getMutex();
-                    $lockName = 'sendcloud:orderWebhook:' . $parcelOrderNumber;
+                    $lockName = 'sendcloud:orderWebhook:' . $parcelId;
                     if (!$mutex->acquire($lockName, 5)) {
                         throw new \RuntimeException("Unable to acquire a lock for Sendcloud webhook: '$lockName'.");
                     }
 
                     try {
                         $status = SendcloudPlugin::getInstance()->orderSync->getOrderSyncStatusByParcelId($parcelId);
+                        if (!$status && empty($parcelOrderId)) {
+                            // Webhooks can race with label creation in craft; retry once after a short delay.
+                            usleep(500000);
+                            $status = SendcloudPlugin::getInstance()->orderSync->getOrderSyncStatusByParcelId($parcelId);
+                        }
                         if (!$status) {
-                            SendcloudPlugin::getInstance()->log("Parcel #$parcelId not found. Trying to find by order #$parcelOrderNumber");
-                            $status = SendcloudPlugin::getInstance()->orderSync->getOrderSyncStatusByOrderId($parcelOrderNumber);
+                            if (!empty($parcelOrderId)) {
+                                SendcloudPlugin::getInstance()->log("Parcel #$parcelId not found. Trying to find by order #$parcelOrderId");
+                                $status = SendcloudPlugin::getInstance()->orderSync->getOrderSyncStatusByOrderId($parcelOrderId);
+                            }
                             if (!$status) {
                                 SendcloudPlugin::getInstance()->log("Order status change skipped: parcel #$parcelId not found.");
                                 return;
