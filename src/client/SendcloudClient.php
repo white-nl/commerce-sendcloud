@@ -21,6 +21,7 @@ use white\commerce\sendcloud\models\OrderSyncStatus;
 use white\commerce\sendcloud\models\ShippingOption;
 use white\commerce\sendcloud\SendcloudPlugin;
 use yii\base\Component;
+use yii\helpers\VarDumper;
 
 /**
  * Client to perform calls on the Sendcloud API.
@@ -150,7 +151,7 @@ class SendcloudClient extends Component
     public function pushOrder(SendcloudOrder $order): bool
     {
         try {
-            $this->guzzleClient->post('orders', [
+            $response = $this->guzzleClient->post('orders', [
                 RequestOptions::JSON => [
                     $order->toArray(),
                 ],
@@ -235,12 +236,25 @@ class SendcloudClient extends Component
                     ],
                 ]);
                 $parcel = Json::decodeIfJson($response->getBody()->getContents());
+                $parcelData = $parcel['data'][0] ?? null;
+                if ($parcelData !== null) {
+                    $status->parcelId = $parcelData['parcel_id'];
+                    $trackingNumber = $parcelData['tracking_number'] ?? null;
+                    if ($trackingNumber) {
+                        $status->trackingNumber = $trackingNumber;
+                        $status->trackingUrl = $parcelData['tracking_url'] ?? null;
+                    }
+
+                    if (!SendcloudPlugin::getInstance()->orderSync->saveOrderSyncStatus($status)) {
+                        throw new \RuntimeException("Could not save order sync status: " . VarDumper::dumpAsString($status->errors));
+                    }
+                }
 
             } catch (TransferException $exception) {
                 throw (new SendcloudRequestException())->parseGuzzleException($exception, Craft::t('commerce-sendcloud', 'Failed to get Label'));
             }
 
-            $file = $parcel['data'][0]['label']['file'] ?? null;
+            $file = $parcelData['label']['file'] ?? null;
             if ($file === null) {
                 throw (new SendcloudRequestException(Craft::t('commerce-sendcloud', 'Label file is missing in Sendcloud response')));
             }

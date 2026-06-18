@@ -215,8 +215,6 @@ class StoreSettingsController extends Controller
         $craftShippingMethods = Commerce::getInstance()->getShippingMethods()->getAllShippingMethods($store->id);
         $craftShippingMethods = $craftShippingMethods->keyBy('name');
 
-        $craftCountries = $store->getSettings()->getCountriesList();
-
         $result = [];
         foreach ($shippingOptions as $shippingOption) {
             if ($craftShippingMethods->has($shippingOption->getName())) {

@@ -1,5 +1,11 @@
 # Release Notes for Craft Sendcloud Plugin
 
+## Unreleased
+
+### Fixed
+
+ - Fixed status webhook not finding parcel to update order status
+
 ## 5.0.1 - 2026-06-15
 
 ### Fixed
