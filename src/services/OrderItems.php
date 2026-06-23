@@ -47,7 +47,7 @@ class OrderItems extends Component
         $measurements = null;
         if ($lineItem->weight) {
             $measurements['weight'] = [
-                'weight' => $lineItem->weight,
+                'value' => $lineItem->weight,
                 'unit' => Plugin::getInstance()->getSettings()->weightUnits,
             ];
         }
