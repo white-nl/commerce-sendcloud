@@ -1,5 +1,11 @@
 # Release Notes for Craft Sendcloud Plugin
 
+## Unreleased
+
+### Fixed
+
+ - Fixed an issue with setting the order item weight incorrectly
+
 ## 5.0.2 - 2026-06-18
 
 ### Fixed
