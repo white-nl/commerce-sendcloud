@@ -8,6 +8,7 @@ use craft\commerce\Plugin as CommercePlugin;
 use craft\errors\MissingComponentException;
 use craft\helpers\Queue;
 use craft\web\Controller;
+use white\commerce\sendcloud\exception\SendcloudRequestException;
 use white\commerce\sendcloud\models\Integration;
 use white\commerce\sendcloud\models\OrderSyncStatus;
 use white\commerce\sendcloud\queue\jobs\PushOrder;
@@ -88,28 +89,40 @@ class OrderController extends Controller
         return $this->redirectToPostedUrl();
     }
 
-    public function actionPrintLabel(): \yii\web\Response
+    public function actionPrintLabel(): Response
     {
         $this->requirePermission('commerce-sendcloud-printLabels');
 
         $orderId = Craft::$app->getRequest()->getRequiredBodyParam('orderId');
 
-        $order = CommercePlugin::getInstance()->getOrders()->getOrderById($orderId);
-        if (!$order || !$order->isCompleted) {
-            throw new NotFoundHttpException();
-        }
+        try {
+            $order = CommercePlugin::getInstance()->getOrders()->getOrderById($orderId);
+            if (!$order || !$order->isCompleted) {
+                throw new NotFoundHttpException();
+            }
 
-        $status = SendcloudPlugin::getInstance()->orderSync->getOrderSyncStatusByOrderId($orderId);
-        if (!$status) {
-            Craft::$app->getSession()->setError(Craft::t('commerce-sendcloud', "Order isn't pushed to sendcloud. Please push the order before trying to print the label."));
+            $status = SendcloudPlugin::getInstance()->orderSync->getOrderSyncStatusByOrderId($orderId);
+            if (!$status) {
+                Craft::$app->getSession()->setError(Craft::t('commerce-sendcloud', "Order isn't pushed to sendcloud. Please push the order before trying to print the label."));
+                return $this->redirectToPostedUrl();
+            }
+            $label = SendcloudPlugin::getInstance()->orderSync->getLabel($status);
+            return Craft::$app->getResponse()->sendContentAsFile(
+                $label,
+                "sendcloud-label-$order->reference.pdf",
+                ['inline' => true, 'mimeType' => 'application/pdf']
+            );
+        } catch (SendcloudRequestException $e) {
+            SendcloudPlugin::getInstance()->error("Could not print label.", $e);
+            if ($e->getSendcloudMessage()) {
+                $message = $e->getSendcloudMessage() . " " . $e->getPointer();
+            } else {
+                $message = Craft::t('commerce-sendcloud', "Could not get Sendcloud label. Please check the error logs for more details.");
+            }
+            Craft::$app->getSession()->setError($message);
+
             return $this->redirectToPostedUrl();
         }
-        $label = SendcloudPlugin::getInstance()->orderSync->getLabel($status);
-        return Craft::$app->getResponse()->sendContentAsFile(
-            $label,
-            "sendcloud-label-$order->reference.pdf",
-            ['inline' => true, 'mimeType' => 'application/pdf']
-        );
     }
 
     public function actionBulkPrintLabels()

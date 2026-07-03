@@ -16,6 +16,7 @@ class SendcloudRequestException extends SendcloudClientException
         ?\Throwable $previous = null,
         protected ?int $sendcloudCode = null,
         protected ?string $sendcloudMessage = null,
+        protected ?string $pointer = null,
     ) {
         $code = $code->value;
         parent::__construct($message, $code, $previous);
@@ -37,6 +38,11 @@ class SendcloudRequestException extends SendcloudClientException
         return $this->sendcloudMessage;
     }
 
+    public function getPointer(): ?string
+    {
+        return $this->pointer;
+    }
+
     public static function parseGuzzleException(
         TransferException $exception,
         string $defaultMessage = null,
@@ -46,11 +52,13 @@ class SendcloudRequestException extends SendcloudClientException
 
         $responseCode = null;
         $responseMessage = null;
+        $responsePointer = null;
 
         if ($exception instanceof RequestException && $exception->getMessage()) {
             $responseData = Json::decodeIfJson($exception->getResponse()->getBody(), true);
-            $responseCode = $responseData['error']['code'] ?? null;
-            $responseMessage = $responseData['error']['message'] ?? null;
+            $responseCode = (int)$responseData['errors'][0]['code'] ?? null;
+            $responseMessage = $responseData['errors'][0]['detail'] ?? null;
+            $responsePointer = $responseData['errors'][0]['source']['pointer'] ?? null;
         }
 
         if ($exception instanceof ConnectException) {
@@ -71,6 +79,6 @@ class SendcloudRequestException extends SendcloudClientException
             }
         }
 
-        return new self($message, $code, $exception, $responseCode, $responseMessage);
+        return new self($message, $code, $exception, $responseCode, $responseMessage, $responsePointer);
     }
 }
