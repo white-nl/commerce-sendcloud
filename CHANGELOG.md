@@ -1,5 +1,11 @@
 # Release Notes for Craft Sendcloud Plugin
 
+## Unreleased
+
+### Fixed
+
+ - Correctly catch execptions during label creation and show in cp notice ([#37](https://github.com/white-nl/commerce-sendcloud/issues/37))
+
 ## 5.0.3 - 2026-06-23
 
 ### Fixed

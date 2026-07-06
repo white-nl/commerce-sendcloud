@@ -234,7 +234,7 @@ class SendcloudPlugin extends Plugin
         while ($exception !== null) {
             $message .= "\n  " . $exception::class . ": " . $exception->getMessage();
             if ($exception instanceof SendcloudRequestException) {
-                $message .= "  " . $exception->getSendCloudMessage();
+                $message .= "  " . $exception->getSendCloudMessage() . " " . $exception->getPointer();
             }
 
             $exception = $exception->getPrevious();
