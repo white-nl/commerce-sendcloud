@@ -145,7 +145,7 @@ class OrderController extends Controller
                 $storeId ??= $order->storeId;
 
                 if (!$status->isLabelCreated()) {
-                    $statusesByOrderNumber[$order->id] = $status;
+                    $statusesByOrderNumber[$order->number] = $status;
                     continue;
                 }
 
@@ -173,7 +173,7 @@ class OrderController extends Controller
                         $plugin->getSettings()->isApplyShippingRules(),
                     );
                     foreach ($response['data'] as $labelData) {
-                        $orderNumber = (string)($labelData['order_number'] ?? '');
+                        $orderNumber = (string)($labelData['order_id'] ?? '');
                         if ($orderNumber === '' || !isset($statusesByOrderNumber[$orderNumber])) {
                             continue;
                         }

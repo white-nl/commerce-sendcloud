@@ -1,5 +1,11 @@
 # Release Notes for Craft Sendcloud Plugin
 
+## 5.0.5 - 2026-11-26
+
+### Fixed
+
+ - Fixed incorrect batch generation of shipping labels.
+
 ## 5.0.4 - 2026-07-06
 
 ### Fixed
